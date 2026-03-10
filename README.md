@@ -55,20 +55,27 @@ Typically, the installation should be prompt (around _10-20 min_ from a "_clean_
      ```
 
 # Usage
-1. Git clone/download the repository to your local disk.
-2. The full datasets will be provided upon request through our Global EV Data Initiative at https://globalevdata.github.io/datasets.
-3. Run
-   1. **data collection**: run each script in the dir ``./Code/Data collection``
-   2. **topic and sentiment analysis**: run each script in the dir ``./Code/Analysis/Topic_and_sentiment_analysis`` (Details can be seen in the document ``./Code/Analysis/Topic_and_sentiment_analysis/Workflow_for_topic_and_sentiment_analysis_of_EV_charging_station_reviews.docx``)
-   3. **statistical analysis**: run each script in the dir ``./Code/Analysis/Statistical_analysis``
-   4. **plot**: run each script in the dir ``./Code/Figure plotting``
-4. Outputs (including text files and figures) will be stored in the dir ``./Data/Interim`` and ``./Data/Figure_plots``, respectively.
 
-# Usage
 1. Clone or download the repository to your local machine.
-2. Prepare the required input data under `./data`. The full datasets will be provided upon request through our Global EV Data Initiative at https://globalevdata.github.io/datasets.
-3. Run `./preparation/main.py` for the main data preparation workflow, including road processing, timetable preparation, duration estimation, trajectory generation, vehicle scheduling, and route type assignment, in order to generate the key input data required by `amosa4CN/test4mosa` for the simulation-based optimization program.
-
+2. Prepare the required input data under `./data`. Due to the large dataset size, we only keep the data for one example city in this repository. The full datasets for the other cities are available upon request through our Global EV Data Initiative at [https://globalevdata.github.io/datasets](https://globalevdata.github.io/datasets).
+3. **Preparation**
+   1. Run `./preparation/main.py` for the main data preparation workflow, including road processing, timetable preparation, duration estimation, trajectory generation, vehicle scheduling, and route type assignment.
+   2. This step generates the key input data required by the simulation-based optimization program in `amosa4CN/test4mosa_multi_cities.py`.
+4. **Simulation-based optimization**
+   1. If needed, run `amosa4CN/test4mosa_cs_dict.py` in advance to generate `all_d2s_dict.pkl`.
+   2. If needed, run `amosa4CN/test4mosa_simplified.py` in advance to generate `vs_parking_nodeid_simplified.csv`.
+   3. Run `amosa4CN/test4mosa_multi_cities.py` to execute the simulation-based optimization program for all cities.
+   4. In this script, you may adjust parameters such as the city list, number of processes, simplified inputs, preloaded dictionaries, `SIM_N`, `min_delta_hv`, and `what_if` settings to generate baseline or what-if scenario results.
+   5. The optimization outputs will be stored in the corresponding directory under `../data/output/mosa/`.
+5. **Result analysis and plotting**
+   1. Run `amosa4CN/TestingResults/analyse_report.ipynb` to summarize the optimization outputs and generate `../data/224cities_output.csv`.
+   2. Run `./resultplot/indicator_calculation.py` to compute the city-level indicators and generate `../data/224city_indicators.csv`.
+   3. Run the plotting scripts in `./resultplot/` to generate the three figures in the paper:
+      1. `fig_1.py`
+      2. `fig_2.py`
+      3. `fig_3.py`
+   4. Run `./resultplot/tab_1.py` to reproduce the regression results in Table 1.
+   5. Note that `tab_1.py` requires both `../data/224city_indicators.csv` and `../data/224cities_output.csv`, which should be prepared in advance through the indicator calculation and optimization result summary steps above.
 
 ## Contact
 - Leave questions in [Issues on GitHub](https://github.com/XanderPENG/global-evcs/issues)
