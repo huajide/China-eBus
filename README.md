@@ -67,9 +67,7 @@ Typically, the installation should be prompt (around _10-20 min_ from a "_clean_
 # Usage
 1. Clone or download the repository to your local machine.
 2. Prepare the required input data under `./data`. The full datasets will be provided upon request through our Global EV Data Initiative at https://globalevdata.github.io/datasets.
-3. Run `./preparation/main.py` for the main data preparation workflow, including road processing, timetable preparation, duration estimation, trajectory generation, vehicle scheduling, and route type assignment.
-4. Run `./preparation/indicator_calculation.py` to compute city-level indicators.
-5. Run `./preparation/indicator_correlation.py` to perform correlation and regression analyses and generate the corresponding figures.
+3. Run `./preparation/main.py` for the main data preparation workflow, including road processing, timetable preparation, duration estimation, trajectory generation, vehicle scheduling, and route type assignment, in order to generate the key input data required by `amosa4CN/test4mosa` for the simulation-based optimization program.
 
 
 ## Contact
