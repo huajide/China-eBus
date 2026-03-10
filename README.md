@@ -1,63 +1,33 @@
 # China-eBus
 
-## Project Overview
-China-eBus is a comprehensive data preprocessing and modeling project focused on bus electrification. It aims to advocate for sustainable public transportation by providing tools, methodologies, and insights into electric bus logistics and operational efficiency.
+## Overview
+This repository contains all codes and (sample) dataset of the paper - 
+***Variances in Operational Feasibility, Investment Cost and Environmental Benefit of Bus Electrification across 224 Chinese Cities***. 
 
-## Research Objectives
-- Analyze data related to electric bus operations in China.
-- Develop predictive models to optimize bus schedules and routes.
-- Identify key factors influencing the efficiency of electric bus systems.
+Note that the **full dataset** can be requested through our [Global EV Data Initiative](https://globalevdata.github.io/data.html).
 
-## Features
-- Data cleaning and preprocessing scripts.
-- Comprehensive data visualization tools.
-- Predictive modeling implementation with machine learning techniques.
+## Requirements and Installation
 
-## Installation Instructions
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/huajide/China-eBus.git
-   ```
-2. Navigate into the project directory:
-   ```bash
-   cd China-eBus
-   ```
-3. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+The analysis code is designed to run in a **Python** environment across Windows and macOS systems.
 
-## Usage Examples
-- To preprocess data:
-  ```bash
-  python preprocess.py
-  ```
-- To train a model:
-  ```bash
-  python train_model.py
-  ```
+### Prerequisites
 
-## Project Structure
-- `data/`: Contains raw and processed data.
-- `scripts/`: Contains Python scripts for data processing and modeling.
-- `notebooks/`: Jupyter notebooks for exploratory data analysis.
-- `requirements.txt`: Lists the packages required for this project.
+It is highly recommended to use the following software versions:
 
-## Contribution Guidelines
-We welcome contributions! To contribute:
-1. Fork the repository.
-2. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -m "Add your message"
-   ```
-4. Push to the branch:
-   ```bash
-   git push origin feature/your-feature
-   ```
-5. Create a pull request detailing your changes.
+**Python Packages**:
+- `python`: 3.9+ (3.10+ recommended)
+- `pandas`: 2.0+
+- `numpy`: 1.24+
+- `scikit-learn`: 1.0+
+- `matplotlib`: 3.5+
+- `seaborn`: 0.12+
+- `geopandas`: 0.12+
+- `shapely`: 2.0+
+- `networkx`: 3.0+ (for network analysis)
+- `scipy`: 1.10+ (for statistical analysis)
+- `arcpy`: For advanced GIS operations (requires ArcGIS Pro 2.8+)
 
-Thank you for your contributions!
+## Contact
+- Leave questions in [Issues on GitHub](https://github.com/XanderPENG/global-evcs/issues)
+- Get in touch with the Corresponding Author: [Dr. Chengxiang Zhuge](mailto:chengxiang.zhuge@polyu.edu.hk)
+or visit our research group website: [The TIP](https://thetipteam.editorx.io/website) for more information
