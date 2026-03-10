@@ -64,6 +64,14 @@ Typically, the installation should be prompt (around _10-20 min_ from a "_clean_
    4. **plot**: run each script in the dir ``./Code/Figure plotting``
 4. Outputs (including text files and figures) will be stored in the dir ``./Data/Interim`` and ``./Data/Figure_plots``, respectively.
 
+# Usage
+1. Clone or download the repository to your local machine.
+2. Prepare the required input data under `./data`. The full datasets will be provided upon request through our Global EV Data Initiative at https://globalevdata.github.io/datasets.
+3. Run `./preparation/main.py` for the main data preparation workflow, including road processing, timetable preparation, duration estimation, trajectory generation, vehicle scheduling, and route type assignment.
+4. Run `./preparation/indicator_calculation.py` to compute city-level indicators.
+5. Run `./preparation/indicator_correlation.py` to perform correlation and regression analyses and generate the corresponding figures.
+
+
 ## Contact
 - Leave questions in [Issues on GitHub](https://github.com/XanderPENG/global-evcs/issues)
 - Get in touch with the Corresponding Author: [Dr. Chengxiang Zhuge](mailto:chengxiang.zhuge@polyu.edu.hk)
