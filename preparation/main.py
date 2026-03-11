@@ -4,10 +4,10 @@ from osmnx.projection import is_projected
 from road_network import city_roadnet
 import geopandas as gpd
 from pyproj import CRS
-
+import json
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'hkbus', 'preprocessing')))
+
 
 from timetable import clean_service_hour, read_chelaile, match_chelaile, static_timetable, fill_twin_timetable
 from timetable import clean_no_timetables, assume_timetable, extract_avg_intervals
@@ -20,10 +20,38 @@ from scipy.spatial import KDTree
 import ast
 import logging
 import re
-import matplotlib
-matplotlib.use('TkAgg')
+from multiprocessing import Pool, cpu_count
+import gradient
+
+
+def process_city(city_info):
+    """Process road network for a single city."""
+    i, (province_name, city_name) = city_info
+
+    try:
+        route_shp = gpd.read_file(rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_route5.shp',
+                                  crs=CRS.from_epsg(4326))
+        city_roadnet(route_shp, save_path=rf'../data/temp/{city_name}')
+
+        stop_shp = gpd.read_file(rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_stop5.shp',
+                                 crs=CRS.from_epsg(4326))
+        stop_shp_uni = stop_shp.drop_duplicates(subset=['stop_id'])
+        stop_shp_uni = stop_shp_uni.reset_index(drop=True)
+        stop_shp_uni = stop_shp_uni.to_crs("EPSG:4547")
+        stop_shp_uni.to_file(rf'../data/temp/{city_name}/uni_stops.shp', index=False)
+
+        road_shp = gpd.read_file(rf'../data/temp/{city_name}/edges.shp', crs=CRS.from_epsg(4326))
+        road_shp = road_shp.to_crs("EPSG:4547")
+        road_shp.to_file(rf'../data/temp/{city_name}/edges.shp', index=False)
+
+        print(f'{city_name} stage 1.1 complete!')
+        return f"{city_name} processed successfully"
+    except Exception as e:
+        return f"Error processing {city_name}: {str(e)}"
+
 
 def thin_points(df, min_distance=100):
+    """Remove points that are too close to each other."""
     coords = df['coords'].apply(lambda x: (x[0], x[1])).tolist()
     tree = KDTree(coords)
     kept = set()
@@ -38,230 +66,250 @@ def thin_points(df, min_distance=100):
     df_filtered = df.loc[list(kept)]
     return df_filtered
 
-"""0. Initialize"""
+
+def remove_duplicate_cs_nodes(city_name):
+    """
+    Handle duplicate node_id issues in charging stations by keeping the most central node.
+
+    Parameters:
+    city_name (str): city name
+    """
+    try:
+        cs_gdf_path = rf'../data/input/cs_gdf/{city_name}.shp'
+
+        if not os.path.exists(cs_gdf_path):
+            print(f"Warning: charging station file for {city_name} does not exist")
+            return False
+
+        cs_gdf = gpd.read_file(cs_gdf_path)
+        original_count = len(cs_gdf)
+
+        duplicated_mask = cs_gdf.duplicated(subset=['node_id'], keep=False)
+        duplicates = cs_gdf[duplicated_mask]
+
+        if duplicates.empty:
+            print(f"{city_name} has no duplicate node_id")
+            return True
+
+        print(f"{city_name} found {len(duplicates)} duplicate records")
+
+        duplicate_node_ids = duplicates['node_id'].unique()
+
+        indices_to_remove = []
+        for node_id in duplicate_node_ids:
+            same_id_records = cs_gdf[cs_gdf['node_id'] == node_id]
+
+            if len(same_id_records) > 1:
+                centroid_x = same_id_records.geometry.x.mean()
+                centroid_y = same_id_records.geometry.y.mean()
+
+                distances = same_id_records.geometry.apply(
+                    lambda geom: ((geom.x - centroid_x) ** 2 + (geom.y - centroid_y) ** 2) ** 0.5
+                )
+
+                closest_idx = distances.idxmin()
+
+                for idx in same_id_records.index:
+                    if idx != closest_idx:
+                        indices_to_remove.append(idx)
+
+        cs_gdf_cleaned = cs_gdf.drop(indices_to_remove)
+        final_count = len(cs_gdf_cleaned)
+
+        backup_path = rf'../data/input/cs_gdf/{city_name}_backup.shp'
+        if not os.path.exists(backup_path):
+            cs_gdf.to_file(backup_path)
+            print(f"Original file backed up to: {backup_path}")
+
+        cs_gdf_cleaned.to_file(cs_gdf_path)
+        print(f"{city_name} duplicate node_id processed: {original_count} -> {final_count}")
+
+        return True
+
+    except Exception as e:
+        print(f"Error processing {city_name}: {str(e)}")
+        return False
+
+
 cities = pd.read_csv(rf'../data/224cities.csv')
 province_list = cities['province'].to_list()
 city_list = cities['city'].to_list()
+city_info_list = list(enumerate(zip(province_list, city_list)))
 date = '2025-1-20'
 
-"""1. Road processing"""
 
-'''1.1 get the osm road network and filter the stops'''
-# for i in range(len(city_list)):
-#     province_name, city_name = province_list[i], city_list[i]
-#     route_shp = gpd.read_file(rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_route5.shp',
-#                               crs=CRS.from_epsg(4326))
-#     city_roadnet(route_shp,save_path=rf'../data/temp/{city_name}')
-#
-#     stop_shp = gpd.read_file(rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_stop5.shp',
-#                               crs=CRS.from_epsg(4326))
-#     stop_shp_uni = stop_shp.drop_duplicates(subset=['stop_id'])
-#     stop_shp_uni = stop_shp_uni.reset_index(drop=True)
-#     stop_shp_uni = stop_shp_uni.to_crs("EPSG:4547")
-#     stop_shp_uni.to_file(rf'../data/temp/{city_name}/uni_stops.shp', index=False)
-#
-#     road_shp = gpd.read_file(rf'../data/temp/{city_name}/edges.shp', crs=CRS.from_epsg(4326))
-#     road_shp= road_shp.to_crs("EPSG:4547")
-#     road_shp.to_file(rf'../data/temp/{city_name}/edges.shp', index=False)
-#     print(f'{city_name} in s1.1 is done!')
+def process_city_slope_energy(province_name, city_name):
+    """
+    Calculate slope-related energy consumption for all routes in a city.
 
-'''1.2 split the road by the stops using arcpy (***plz turn to the arcgispro-py3 environment***)'''
-# import arcpy
-# proxy_thold = 50 # distance less than 50m will be considered as proxy stop
-# for i in range(len(city_list)):
-#     province_name, city_name = province_list[i], city_list[i]
-#     point_path = rf'E:\Manufacture\Python\cnbus\data\temp\{city_name}/uni_stops.shp'
-#     line_path = rf'E:\Manufacture\Python\cnbus\data\temp\{city_name}\edges.shp'
-#     export_path = rf'E:\Manufacture\Python\cnbus\data\temp\{city_name}\split_roads.shp'
-#     arcpy.management.SplitLineAtPoint(line_path, point_path, export_path, f"{proxy_thold} Meters")
-#     print(f'{city_name} in s1.2 is done!')
+    Parameters:
+    province_name (str): province name
+    city_name (str): city name
 
-'''1.3 (***turn back to original environment***)'''
-# for i in range(15,len(city_list)):
-#     province_name, city_name = province_list[i], city_list[i]
-#
-#     road_split_shp = gpd.read_file(rf'../data/temp/{city_name}/split_roads.shp', crs=CRS.from_epsg(4326))
-#     road_split_shp.drop(columns=['u','v'],inplace=True)
-#     nodes_sim, edges_sim = road_preprocessing.nodes_and_edges(road_split_shp, crs='4547', meter_threshold=5)
-#     output_dir = rf'../data/road/{city_name}'
-#     if not os.path.exists(output_dir):
-#         os.makedirs(output_dir)
-#     nodes_sim.to_file(output_dir+'/nodes_sim.shp', index=False)
-#     edges_sim.to_file(output_dir+'/edges_sim.shp', index=False)
-#     print(f'{city_name} in s1.3 is done!')
+    Returns:
+    pandas.DataFrame: containing route_id and slope_energy_change_kwh
+    """
+    try:
+        route_shp_path = rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_route5.shp'
+        srtm_index_path = r"../../SRTM_v41_China_Tiles/index.shp"
+        srtm_tiles_dir = r"../../SRTM_v41_China_Tiles"
 
-    
-"""2. Timetable"""
-all_stat = []
+        if not os.path.exists(route_shp_path):
+            print(f"Warning: route file for {city_name} does not exist: {route_shp_path}")
+            return None
+
+        result = gradient.process_srtm_data_with_route(route_shp_path, srtm_index_path, srtm_tiles_dir)
+
+        if result[0] is not None:
+            mosaic, out_meta, route_gdf = result
+
+            energy_results = []
+
+            for idx, route_row in route_gdf.iterrows():
+                route_geometry = route_row['geometry']
+                route_id = route_row.get('route_id', f'Unknown_{idx}')
+
+                distances, elevations = gradient.get_elevation_profile(route_geometry, mosaic, out_meta)
+
+                smoothed_distances, smoothed_elevations = gradient.smooth_elevation_by_slope(distances, elevations)
+
+                energy_df = gradient.calculate_slope_energy_consumption(smoothed_distances, smoothed_elevations, route_id)
+                energy_results.append(energy_df)
+
+            if energy_results:
+                final_energy_df = pd.concat(energy_results, ignore_index=True)
+                return final_energy_df
+        else:
+            print(f"SRTM data processing failed for {city_name}")
+            return None
+    except Exception as e:
+        print(f"Error processing {city_name}: {str(e)}")
+        return None
+
+
+def calculate_route_stop_counts(province_name, city_name):
+    """
+    Calculate the number of stops for each route_id.
+
+    Parameters:
+    province_name (str): province name
+    city_name (str): city name
+
+    Returns:
+    pandas.DataFrame: containing route_name and stop_num
+    """
+    try:
+        stop_shp_path = rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_stop5.shp'
+
+        if not os.path.exists(stop_shp_path):
+            print(f"Warning: stop file for {city_name} does not exist: {stop_shp_path}")
+            return None
+
+        stop_gdf = gpd.read_file(stop_shp_path)
+
+        stop_counts = stop_gdf.groupby('route_name').size().reset_index(name='stop_num')
+
+        return stop_counts
+    except Exception as e:
+        print(f"Error calculating stop counts for {city_name}: {str(e)}")
+        return None
+
+
+def check_negative_base_energy(df, city_name):
+    """
+    Check if there are routes with base_energy less than 0.
+
+    Parameters:
+    df (pandas.DataFrame): DataFrame containing base_energy field
+    city_name (str): city name
+    """
+    try:
+        if 'base_energy' not in df.columns:
+            print(f"Warning: base_energy column not found in {city_name}")
+            return
+
+        negative_energy_rows = df[df['base_energy'] < 0]
+
+        if not negative_energy_rows.empty:
+            print(f"\nRoutes with negative base_energy in {city_name}:")
+            negative_energy_unique = negative_energy_rows.drop_duplicates(subset=['route_id'])
+
+            for idx, row in negative_energy_unique.iterrows():
+                route_name = row.get('route_name', 'N/A')
+                base_energy = row.get('base_energy', 'N/A')
+                route_id = row.get('route_id', 'N/A')
+                print(f"  - City: {city_name}, Route: {route_name}, route_id: {route_id}, base_energy: {base_energy:.2f}")
+            print(f"  Total: {len(negative_energy_unique)} unique routes")
+        else:
+            print(f"No routes with negative base_energy in {city_name}")
+    except Exception as e:
+        print(f"Error checking negative energy for {city_name}: {str(e)}")
+
+
 for i in range(len(city_list)):
-    if i != 109 and i != 160:
-        continue
-
     province_name, city_name = province_list[i], city_list[i]
-    city_only = city_name.replace('市', '')
-    logging.info(f"Processing {city_name}'s timetable ({i}/{len(city_list)})")
+    print(f"Processing city: {city_name} ({i+1}/{len(city_list)})")
 
-    """2.1 standardize service hour"""
-    route_gdf = gpd.read_file(rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_route5.shp',
-                              crs=CRS.from_epsg(4326))
-    stat = [city_name, len(route_gdf)]
-    clean_service_hour(route_gdf)
+    try:
+        slope_energy_df = process_city_slope_energy(province_name, city_name)
+        stop_count_df = calculate_route_stop_counts(province_name, city_name)
 
-    """2.2 match chelaile data"""
-    chelaile_path = rf'../data/chelaile/{city_only}result.csv'
-    chelaile_data = read_chelaile(chelaile_path)
+        if (slope_energy_df is not None and not slope_energy_df.empty) or \
+           (stop_count_df is not None and not stop_count_df.empty):
+            vs_parking_path = rf'../data/input/vs_parking_nodeid/{city_name}.csv'
+            if os.path.exists(vs_parking_path):
+                vs_parking_df = pd.read_csv(vs_parking_path)
 
-    route_dnmc = match_chelaile(route_gdf,chelaile_data)
+                if slope_energy_df is not None and not slope_energy_df.empty:
+                    vs_parking_with_slope = vs_parking_df.merge(
+                        slope_energy_df,
+                        on='route_id',
+                        how='left'
+                    )
 
-    """2.3 get the raw data to match the completed timetable info"""
-    raw_path = f'../data/cnbusdata2024/{province_name}/{city_name}/{city_name}_线路.csv'
-    raw_data = pd.read_csv(raw_path, encoding='gbk')
-    raw_data.rename(columns={'公交id': 'route_id','运营时刻': 'timetable', '路过的公交站': 'route_stop'}, inplace=True)
-    raw_data = raw_data[['route_id', 'timetable', 'route_stop']]
+                    if 'slope_energy_change_kwh' in vs_parking_with_slope.columns:
+                        vs_parking_with_slope.rename(
+                            columns={'slope_energy_change_kwh': 'grade_energy'},
+                            inplace=True
+                        )
+                else:
+                    vs_parking_with_slope = vs_parking_df.copy()
+                    vs_parking_with_slope['grade_energy'] = np.nan
 
-    route_dnmc = route_dnmc.drop(columns=['timetable', 'route_stop'])
-    route_dnmc = pd.merge(route_dnmc, raw_data, on='route_id', how='left')
-    # print(f"Number of routes with dynamic timetables: {route_dnmc[route_dnmc['timetables'].apply(len) > 0].shape[0]}")
-    stat.append(route_dnmc[route_dnmc['timetables'].apply(len) > 0].shape[0])
+                if stop_count_df is not None and not stop_count_df.empty:
+                    vs_parking_with_slope = vs_parking_with_slope.merge(
+                        stop_count_df,
+                        on='route_name',
+                        how='left'
+                    )
+                else:
+                    vs_parking_with_slope['stop_num'] = np.nan
 
-    """2.4 generate static timetables (should be done after matching chelaile data)"""
-    static_timetable(route_dnmc)
-    # print(f"Number of routes with timetables: {route_dnmc[route_dnmc['timetables'].apply(len) > 0].shape[0]}")
-    stat.append(route_dnmc[route_dnmc['timetables'].apply(len) > 0].shape[0])
-    fill_twin_timetable(route_dnmc)
-    # print(f"Number of routes with timetables (adjusted): {route_dnmc[route_dnmc['timetables'].apply(len) > 0].shape[0]}")
-    stat.append(route_dnmc[route_dnmc['timetables'].apply(len) > 0].shape[0])
+                vs_parking_with_slope['base_energy'] = (
+                    vs_parking_with_slope['grade_energy'] +
+                    vs_parking_with_slope['distance'] / 1000 * (
+                        -0.885 + 0.260 * 2 + 0.036 * 20 + 0.005 * 10 + 0.065 * 2 +
+                        0.128 * vs_parking_with_slope['stop_num'] / vs_parking_with_slope['distance'] * 1000 +
+                        0.007 * vs_parking_with_slope['avg_velocity'] + 0.173 * 0.6
+                    )
+                )
 
-    """2.5 delete 5 types of route"""
-    route_reserved = clean_no_timetables(route_dnmc)
+                output_base_dir = "../data/input/vs_parking_nodeid_new"
+                if not os.path.exists(output_base_dir):
+                    os.makedirs(output_base_dir)
 
-    """2.6 assume the timetables for those info-lacked routes"""
-    route_reserved[['peak_interval', 'offpeak_interval']] = route_reserved['timetables'].apply(
-        lambda x: pd.Series(extract_avg_intervals(x))
-    )
+                output_path = rf'{output_base_dir}/{city_name}.csv'
+                vs_parking_with_slope.to_csv(output_path, index=False)
+                print(f"  Data saved for {city_name}: {output_path}")
 
-    # Count routes with both peak and off-peak intervals first.
-    valid_peak_data = route_reserved['peak_interval'].dropna()
-    valid_offpeak_data = route_reserved['offpeak_interval'].dropna()
+                check_negative_base_energy(vs_parking_with_slope, city_name)
+            else:
+                print(f"  Warning: vs_parking_nodeid file not found for {city_name}: {vs_parking_path}")
+        else:
+            print(f"  No valid slope energy or stop count data generated for {city_name}")
+    except Exception as e:
+        print(f"  Error processing {city_name}: {str(e)}")
 
-    # Routes with both peak and off-peak intervals.
-    valid_both = route_reserved.dropna(subset=['peak_interval', 'offpeak_interval'])
+    print("-" * 50)
 
-    if len(valid_both) > 0:
-        peak_avg = valid_both['peak_interval'].mean()
-        offpeak_avg = valid_both['offpeak_interval'].mean()
-    else:
-        # Otherwise compute the two averages separately.
-        peak_avg = valid_peak_data.mean() if len(valid_peak_data) > 0 else None
-        offpeak_avg = valid_offpeak_data.mean() if len(valid_offpeak_data) > 0 else None
-
-    peak_avg = round(peak_avg) if not pd.isna(peak_avg) else None
-    offpeak_avg = round(offpeak_avg) if not pd.isna(offpeak_avg) else None
-
-    print(f'{city_name} peak-{peak_avg} mins; offpeak-{offpeak_avg} mins')
-    assume_timetable(route_reserved,off_peak_interval=offpeak_avg, peak_interval=peak_avg)
-    route_reserved.drop(columns=['peak_interval', 'offpeak_interval'], inplace=True)
-    stat.extend([len(route_reserved),peak_avg,offpeak_avg])
-
-    route_reserved.to_csv(rf'../data/timetable/{city_name}.csv', index=False)
-    all_stat.append(stat)
-
-all_stat = pd.DataFrame(all_stat, columns=['city', 'total_routes', 'with_dynamic_timetable', 'with_all_timetable',
-                                           'with_adjusted_timetable', 'reserved_routes','peak_avg_interval',
-                                           'offpeak_avg_interval'])
-
-"""3. Duration: data crawling from amap api"""
-# key = 'f8199ab65ebb32d41107798f2b3c491b'
-
-# for i in range(len(city_list)):
-#     if i > 1:
-#         break
-#     province_name, city_name = province_list[i], city_list[i]
-#
-#     stop_gdf = gpd.read_file(rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_stop5.shp',
-#                               crs=CRS.from_epsg(4326))
-#     timetables = pd.read_csv(rf'../data/timetable/{city_name}.csv')
-#
-#     timetables, pt_info_all = get_all_pt_duration(timetables, stop_gdf, city_name, date, key)
-#
-#     timetables.to_csv(rf'../data/duration/{city_name}.csv', index=False)
-#     with open(rf'../data/duration/{city_name}.json', 'w') as json_file:
-#         json.dump(pt_info_all, json_file)
-
-"""4. Final processing"""
-# for i in range(len(city_list)):
-#     # if i != 15:
-#     #     continue
-#     province_name, city_name = province_list[i], city_list[i]
-#
-#     '''4.1 processing the duration and generate vs_parking_df'''
-#     stop_gdf = gpd.read_file(rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_stop5.shp',
-#                               crs=CRS.from_epsg(4326))
-#     route_info = pd.read_csv(rf'../data/duration/{city_name}.csv')
-#     route_info = update_durations(route_info)
-#     route_info = route_info[route_info['timetables']!='[]'].reset_index(drop=True)
-#
-#
-#     vs_parking_df = trajectory_generation(route_info, stop_gdf, date)
-#
-#     '''4.2 generate vs_vs_parking_nodeid'''
-#     vs_parking_df = vehicle_scheduling(vs_parking_df, minInterval=5, speed=40, line_name='name2crawl',
-#                                        s_coords='orientation_coords', e_coords='destination_coords',
-#                                        s_time='s_time', e_time='e_time')
-#
-#     nodes_sim = gpd.read_file(rf'../data/road/{city_name}/nodes_sim.shp',crs=CRS.from_epsg(4547))
-#     nodes_sim = nodes_sim[['node_id', 'geometry']].copy()
-#
-#     if isinstance(vs_parking_df['destination_coords'][0], str):
-#         vs_parking_df['destination_coords'] = vs_parking_df.apply(lambda x: ast.literal_eval(x['destination_coords']),
-#                                                                   axis=1)
-#
-#     all_des = vs_parking_df[['destination_coords', 'distance']].copy()
-#     all_des = all_des.drop_duplicates(subset='destination_coords').reset_index(drop=True)
-#     all_des['geometry'] = all_des.apply(lambda x: Point(x['destination_coords']), axis=1)
-#     all_des = all_des.drop(columns=['distance'])
-#     all_des = gpd.GeoDataFrame(all_des, geometry='geometry')
-#     all_des.set_crs(epsg=4326, inplace=True)
-#     all_des.to_crs(epsg=4547, inplace=True)
-#
-#     all_des = tbd.ckdnearest_point(all_des, nodes_sim)
-#     all_des_formatch = all_des[['node_id', 'destination_coords']].copy()
-#     vs_parking_df = pd.merge(vs_parking_df, all_des_formatch, on='destination_coords')
-#     vs_parking_df.rename(columns={'vehicle_no': 'v_name', 'trip_no': 'trip',
-#                                   'node_id': 'destination'}, inplace=True)
-#
-#     vs_parking_df.to_csv(rf'../data/input/vs_parking_nodeid/{city_name}.csv', index=False)
-#
-#     print(f'{city_name} {len(all_des)} vs {vs_parking_df['destination'].nunique()}')
-
-    # '''4.3 generate charging station'''
-    # all_des.rename(columns={'geometry_x': 'geometry'}, inplace=True)
-    # all_des = all_des[['node_id', 'destination_coords', 'geometry']].copy()
-    # all_des['lon'] = all_des.apply(lambda x: x['destination_coords'][0], axis=1)
-    # all_des['lat'] = all_des.apply(lambda x: x['destination_coords'][1], axis=1)
-    # all_des = all_des.drop(columns=['destination_coords'])
-    #
-    # all_des['coords'] = all_des.apply(lambda row: (row.geometry.x, row.geometry.y), axis=1)
-    # raw_cs=thin_points(all_des, min_distance=500)
-    # raw_cs = raw_cs.drop(columns=['coords'])
-    # raw_cs.to_file(f'../data/input/cs_gdf/{city_name}.shp', driver='ESRI Shapefile', encoding='utf-8')
-
-"""5. Supplement the vehicle (route) type"""
-# for i in range(len(city_list)):
-#     # if i != 15:
-#     #     continue
-#     province_name, city_name = province_list[i], city_list[i]
-#
-#     route_gdf = gpd.read_file(rf'../data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_route5.shp',
-#                               crs=CRS.from_epsg(4326))
-#     vs_parking_df = pd.read_csv(rf'../data/input/vs_parking_nodeid/{city_name}.csv')
-#     route_gdf = route_type(route_gdf)
-#
-#     vs_parking_df = vs_parking_df.merge(
-#         route_gdf[['route_id', 'vehicle_type']].drop_duplicates(),
-#         on='route_id',
-#         how='left'
-#     )
-#
-#     vs_parking_df['vehicle_type'] = vs_parking_df['vehicle_type'].fillna('medium')
-#     vs_parking_df.to_csv(rf'../data/input/vs_parking_nodeid/{city_name}.csv', index=False)
+print("All cities processed!")
