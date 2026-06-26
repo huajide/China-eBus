@@ -308,7 +308,7 @@ def process_single_city(city_i, cities_df, is_simplified=False, is_referred=Fals
             refer_vars = sim_utils.set_refer_vars(len(cs_gdf), refer_num=20)
 
         algorithm.load_refer_solutions(refer_vars)
-        save_path = rf"../data/output/mosa/251026/{city_name}"
+        save_path = rf"../data/output/mosa/260420/{city_name}"
         # Skip the city if save_path already exists and is not empty.
         if os.path.exists(save_path) and os.listdir(save_path):
             print(f"Results for city {city_name} already exist and are not empty; skipping")
