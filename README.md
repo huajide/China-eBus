@@ -2,7 +2,7 @@
 
 ## Overview
 This repository contains all codes and (sample) dataset of the paper - 
-***Variances in Operational Feasibility, Investment Cost and Environmental Benefit of Bus Electrification across 224 Chinese Cities***. 
+***How do bus network structure shapes system costs and emissions of fleet electrification? Evidence from 224 Chinese cities***. 
 
 Note that the **full dataset** can be requested through our [Global EV Data Initiative](https://globalevdata.github.io/data.html).
 
