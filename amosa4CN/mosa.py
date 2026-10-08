@@ -16,23 +16,23 @@ from vehicle_type import vehi_type_num
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
+
 class MOSAConfig:
     def __init__(self,
                  problem: Problem,
                  initial_temperature: int or float = 1000,
                  end_temperature: int or float = 200,
-                 cooling_alpha: float = 0.98,  # within (0,1)
+                 cooling_alpha: float = 0.98,
                  annealing_iters: int = 300,
-                 annealing_strength: float = 0.2,  # perturb strength; range between (0, 1)
-                 early_termination: dict = None,  # dict{'max_iters': 1000, 'max_duration': 15} //unit: hour
-                 min_delta_hv: float = 0.01,  # 0.01 by default, with the max_no_eliminated of 10000
+                 annealing_strength: float = 0.2,
+                 early_termination: dict = None,
+                 min_delta_hv: float = 0.01,
                  multiprocess=False,
                  what_if=False,
                  sim_n: int = 3,
                  is_tested=False
                  ):
         """ Check the validity of inputs """
-        # assert sl >= hl > 0, f'Invalid sl and hl setting'
         assert 0 < cooling_alpha < 1, f'Invalid cooling_factor'
 
         # Static attrs
@@ -48,17 +48,27 @@ class MOSAConfig:
         self.multiprocess = multiprocess
         self.what_if = what_if
         self.sim_n = sim_n
-        # self.is_tested = is_tested
+
 
 class MOSA(MOSAConfig):
     def __init__(self, problem, hl=20, sl=50, clustering_iters=50, hill_climbing_num=100,
                  initial_temperature=1000, end_temperature=1e-7,
                  cooling_alpha=0.98, annealing_iters=200, annealing_strength=0.2,
-                 early_termination={}, multiprocess=False, sim_n=3
+                 early_termination={}, multiprocess=False, sim_n=3,
+                 evaluator=None, vehicle_perturb_scale=0.5
                  ):
         # Inherit from config
-        super(MOSA, self).__init__(problem, initial_temperature, end_temperature, cooling_alpha,
-                                   annealing_iters, annealing_strength, early_termination, multiprocess, sim_n)
+        super(MOSA, self).__init__(
+            problem,
+            initial_temperature=initial_temperature,
+            end_temperature=end_temperature,
+            cooling_alpha=cooling_alpha,
+            annealing_iters=annealing_iters,
+            annealing_strength=annealing_strength,
+            early_termination=early_termination,
+            multiprocess=multiprocess,
+            sim_n=sim_n,
+        )
         # dynamic attrs
         self.archive = {}  # Store the solutions
         self.problem_records = {}  # Store output for specific problem
@@ -66,8 +76,33 @@ class MOSA(MOSAConfig):
         self.current_temperature = 0
         self.fitness = []
         self.archive_history = []
+        self.evaluator = evaluator
+        self.vehicle_perturb_scale = vehicle_perturb_scale
 
-    def load_refer_solutions(self, refer_vars: np.ndarray = None, refer_obj=None, path=None):
+    def evaluate(self, vars_):
+        """Evaluate one solution without changing the AMOSA search logic."""
+        if self.evaluator is not None:
+            return self.evaluator.evaluate(vars_)
+        return self.problem.eval_vars(vars_)[0:2]
+
+    def evaluate_population(self, population):
+        """Evaluate independent initial solutions, preserving their input order."""
+        if self.evaluator is not None:
+            return self.evaluator.evaluate_population(population)
+        objectives = []
+        diagnostics = []
+        for vars_ in population:
+            obj_v, cv_v = self.problem.eval_vars(vars_)[0:2]
+            objectives.append(obj_v)
+            diagnostics.append(cv_v)
+        return np.asarray(objectives), np.asarray(diagnostics)
+
+    @staticmethod
+    def is_feasible(cv):
+        return len(cv) > 0 and np.asarray(cv).flat[0] <= 0
+
+    def load_refer_solutions(self, refer_vars: np.ndarray = None, refer_obj=None,
+                             refer_cvs=None, path=None):
         """
         load the referred solutions and objectives values into the archive
 
@@ -88,7 +123,10 @@ class MOSA(MOSAConfig):
         if refer_obj is not None:
             assert isinstance(refer_obj, np.ndarray), f"'refer_obj' should be np.ndarray"
             assert refer_vars.shape[0] == refer_obj.shape[0], f"'refer_vars' & 'refer_obj' should have the same length"
-            assert refer_obj.shape[1] == self.problem.obj_num[0], f"Plz check the number of 'refer_obj' columns"
+            expected_obj_num = (self.problem.obj_num[0]
+                                if isinstance(self.problem.obj_num, (list, tuple, np.ndarray))
+                                else self.problem.obj_num)
+            assert refer_obj.shape[1] == expected_obj_num, f"Plz check the number of 'refer_obj' columns"
 
         # If there is no given refer_obj, calculate them
         if refer_obj is None:
@@ -102,24 +140,36 @@ class MOSA(MOSAConfig):
                     res_list.append(res.get())
 
                 for idx, v in enumerate(res_list[0]):
-                    self.archive.update({idx: [all_vars_list[0][0], v[0], v[1]]})
+                    if not self.is_feasible(v[1]):
+                        continue
+                    key = len(self.archive)
+                    self.archive.update({key: [refer_vars[idx], v[0], v[1]]})
                     if self.problem.num_return > 2:  # Add additional problem return if it has
-                        self.problem_records.update({idx: v[2]})
+                        self.problem_records.update({key: v[2]})
                 logging.info("The initialization of archive has finished")
             else:
-                # Calculate the objective values of refer_solutions
+                # Initial solutions are independent and can safely be evaluated as one batch.
+                refer_objs, refer_cvs = self.evaluate_population(refer_vars)
                 for idx, v in enumerate(refer_vars):
-                    obj_v, cv_v = self.problem.eval_vars(v)[0:2]
+                    obj_v, cv_v = refer_objs[idx], refer_cvs[idx]
+                    if not self.is_feasible(cv_v):
+                        continue
                     # Add current refer_var and objectives values into archive
-                    self.archive.update({idx: [v, obj_v, cv_v]})  # [vars: [int or float], objV:[f1, f2, f3], cv:[0]]
+                    key = len(self.archive)
+                    self.archive.update({key: [v, obj_v, cv_v]})
                     if self.problem.num_return > 2:
-                        self.problem_records.update({idx: self.problem.adl_returns})
+                        self.problem_records.update({key: self.problem.adl_returns})
                 logging.info("The initialization of archive has finished")
         # When refer_obj is given, Store them into the archive directly
         else:
+            if refer_cvs is None:
+                refer_cvs = np.zeros((len(refer_vars), 1))
             for idx, v in enumerate(tuple(zip(refer_vars, refer_obj, refer_cvs))):
-                self.archive.update({idx: [v[0], v[1], v[2]]})  # [vars: [int or float], objV:[f1, f2, f3], cv:[0]]
+                if self.is_feasible(v[2]):
+                    self.archive.update({len(self.archive): [v[0], v[1], v[2]]})
             logging.info("The initialization of archive has finished")
+        if not self.archive:
+            raise ValueError("No feasible reference solution was found")
 
     def is_archive(self, vars_: List[int or float]):
         """
@@ -131,9 +181,8 @@ class MOSA(MOSAConfig):
                                                                        self.archive.values())))) == 0 else True
 
     def check_perturb_cv(self, new_var):
-
-        cv = self.problem.eval_vars(new_var, 'CV')
-        return True if all(cv <= 0) else False
+        cv = self.evaluate(new_var)[1]
+        return self.is_feasible(cv)
 
     def perturb(self, old_vars, is_cv=True, is_h_cv=False):
         """
@@ -154,7 +203,6 @@ class MOSA(MOSAConfig):
             shrink_rate = 0.1
         else:
             shrink_rate = self.current_temperature / self.initial_temperature
-        # s_time = time.perf_counter()
         while num_exit > 0:
             # Select which vars should be perturbed randomly
             if is_cv:
@@ -165,14 +213,14 @@ class MOSA(MOSAConfig):
                     new_vars[idx_x] = random.randint(0, 1)
 
                 # perturb the vehicle type
-                if random.random() < 0.5*(shrink_rate+0.1):
+                if random.random() < self.vehicle_perturb_scale * (shrink_rate + 0.1):
                     new_vars[cs_num] =  random.randint(0,vehi_type_num('large')-1)
                     new_vars[cs_num+1] = random.randint(0, vehi_type_num('medium') - 1)
                     new_vars[cs_num+2] = random.randint(0, vehi_type_num('small') - 1)
 
-                # Ensure that at least one charging station is selected.
+                # Keep at least one charging station selected.
                 if all(new_vars[:cs_num] == 0):
-                    # If none is selected, randomly activate one station.
+                    
                     random_idx = random.randint(0, cs_num - 1)
                     new_vars[random_idx] = 1
 
@@ -229,7 +277,6 @@ class MOSA(MOSAConfig):
                 num_exit -= 1
                 if feasible and num_cv_exit > 0:
                     logging.info("Perturb feasible solutions successfully and the iters are: ", num_cv_exit)
-        # print('perturb time: ', time.perf_counter() - s_time)
         return new_vars
 
     def cal_fitness_range(self, old_obj: np.ndarray, new_obj: np.ndarray) -> np.ndarray:
@@ -255,18 +302,17 @@ class MOSA(MOSAConfig):
         """
         if ranges is None:
             ranges = self.cal_fitness_range(old_obj, new_obj)
-        # Process if there is only one objective
-        if all(np.array([ranges[1], old_obj[1], new_obj[1]]) == 0):
-            return np.prod([abs(new_obj[0] - old_obj[0]) / ranges[0]])
-
-        elif all(np.array([ranges[0], old_obj[0], new_obj[0]]) == 0):
-            return np.prod([abs(new_obj[1] - old_obj[1]) / ranges[1]])
-        else:
-            return np.prod([abs(i - j) / r for i, j, r in zip(old_obj, new_obj, ranges)])
+        differences = [abs(i - j) / r for i, j, r in zip(old_obj, new_obj, ranges)
+                       if r > 0 and i != j]
+        return float(np.prod(differences)) if differences else 0.0
 
     @staticmethod
     def sigmoid(x):
         return 1 / (1 + np.exp(np.array(-x, dtype=np.float64)))
+
+    def inferior_acceptance_probability(self, domination_amount):
+        temperature = max(self.current_temperature, self.end_temperature) / self.initial_temperature
+        return float(self.sigmoid(-min(domination_amount / temperature, 700.0)))
 
     def dominates(self, old_obj: np.ndarray, new_obj: np.ndarray):
         """
@@ -285,13 +331,13 @@ class MOSA(MOSAConfig):
         '''
         There are 3 situations when compare the old and new vars
         '''
-        if all(new_obj >= old_obj):  # 1. When new_vars dominates old_vars (larger is better)
+        if all(new_obj >= old_obj):  
 
             # Derive the solutions in the archive dominated by the new_vars
-            # x[0] is the archive key and x[1][1] stores the bi-objective values.
-            # dominated_solutions_idx stores archive keys dominated by the new solution.
+            
+            
             dominated_solutions = list(filter(lambda y: all(new_obj >= y[1]),
-                                              map(lambda x: (x[0], x[1][1]), self.archive.items())))
+                                              map(lambda x: (x[0], x[1][1]), self.archive.items())))  
             dominated_solutions_idx = [i[0] for i in dominated_solutions]  # The dict keys for these solutions
             # Derive the solutions in the archive dominates the new_vars
             dominate_solutions = list(filter(lambda y: all(y[1] >= new_obj),
@@ -300,7 +346,6 @@ class MOSA(MOSAConfig):
 
             # 1) When new_vars dominates k(k >= 1) solutions in the archive
             if len(dominated_solutions_idx) >= 1:
-                # print("new dom >=1 old")
                 return "new", True, dominated_solutions_idx
             # 2) When new_vars is dominated by k(k >= 1) solutions in the archive
             elif len(dominate_solutions_idx) >= 1:
@@ -310,12 +355,10 @@ class MOSA(MOSAConfig):
                                       [i[1] for i in dominate_solutions]]
                 dom_min = min(domination_amounts)
                 dom_min_idx = dominate_solutions_idx[np.argmin(domination_amounts)]
-                probability = self.sigmoid(dom_min)  # Accept probability
+                probability = 1 - self.inferior_acceptance_probability(dom_min)
                 if random.random() <= probability:  # Set solution that in the archive corresponding to the dom_min
-                    # print('return archive 1.2.1')
                     return dom_min_idx, False, []
                 else:  # Set new_solution as current one without adding
-                    # print('return new 1.2.2')
                     return "new", False, []
             else:  # 3) There is no dominate relations between the new solution and any solutions in the archive
                 # Judge whether old solution is in the archive
@@ -323,7 +366,6 @@ class MOSA(MOSAConfig):
                                                map(lambda x: (x[0], x[1][1]),
                                                    self.archive.items())))
                 is_archive = True if len(is_archive_parse) != 0 else False
-                # print('return new, 1.3')
                 if is_archive:
                     return "new", True, [is_archive_parse[0][0]]
                 else:
@@ -341,12 +383,10 @@ class MOSA(MOSAConfig):
                                                 [i[1] for i in dominate_solutions]]) +
                                      self.cal_domination_amount(old_obj, new_obj, ranges)) / (
                                             len(dominate_solutions) + 1)
-            probability = self.sigmoid(-domination_amount_avg * self.current_temperature)
+            probability = self.inferior_acceptance_probability(domination_amount_avg)
             if random.random() <= probability:
-                # print('return new, 2.1')
                 return "new", False, []
             else:
-                # print('return old, 2.2')
                 return "old", False, []
         # 3. When the new solution and old solution are non-dominated by each other
         elif not all(old_obj >= new_obj) and not all(new_obj >= old_obj):
@@ -361,27 +401,22 @@ class MOSA(MOSAConfig):
             dominate_solutions_idx = [i[0] for i in dominate_solutions]
 
             if len(dominated_solutions) > 0:  # 1) When the new solution dominates 'k' solutions in the archive
-                # print('return new, 3.1')
                 return "new", True, dominated_solutions_idx
             elif len(dominate_solutions) > 0:  # 2) The new solution is dominated by 'k' solutions in the archive
                 ranges = self.cal_fitness_range(old_obj, new_obj)
                 domination_amount_avg = np.nansum([self.cal_domination_amount(k, new_obj, ranges) for k in
                                                    [i[1] for i in dominate_solutions]]) / len(dominate_solutions)
-                probability = self.sigmoid(-domination_amount_avg * self.current_temperature)
+                probability = self.inferior_acceptance_probability(domination_amount_avg)
                 if random.random() <= probability:
-                    # print('return new, 3.2.1')
                     return "new", False, []
                 else:
-                    # print('return old, 3.2.2')
                     return "old", False, []
             else:  # 3) There is no domination relations between the new solution and all the solutions in archive
-                # print('return new, 3.3')
                 return "new", True, []
         else:
             raise ValueError('Cannot determine the status of domination. Plz check the solutions')
 
     def print_statistics(self, current_obj: np.ndarray, current_cv: np.arange, iter_num: int):
-        # is_feasible = all(current_cv <= 0)  # Check whether the solution meet the cv requirement
         print(" | {:<10.2f} | {:<8d} | {:<.2e} {:<.2e} | {:^9} | {:^8.0f} |".
               format(self.current_temperature,
                      iter_num,
@@ -408,18 +443,6 @@ class MOSA(MOSAConfig):
         plt.ylabel('ObjV2', labelpad=6, color='orangered', fontsize=12)
         plt.yticks(fontsize=8)
 
-        # if final_results is None:  # Plot the self.archive
-        #     ObjV = np.array([i[1] for i in self.archive.values()])
-        #     plt.scatter(ObjV[:, [0]], ObjV[:, [1]], color='coral', marker='X', linewidths=1, alpha=0.8)
-        #     plt.show(block=True)
-        #     if save:
-        #         plt.savefig(path + '\\' + 'pareto_results.png')
-        # else:
-        #     ObjV = np.array([i[1] for i in final_results.values()])
-        #     plt.scatter(ObjV[:, [0]], ObjV[:, [1]], color='coral', marker='X', linewidths=1, alpha=0.8)
-        #     plt.show(block=True)
-        #     if save:
-        #         plt.savefig(path + '\\' + 'pareto_results.png')
 
     def check_cv(self):
         """
@@ -428,7 +451,7 @@ class MOSA(MOSAConfig):
         """
 
         # Delete solutions that do not fulfill the CV requirement in the archive
-        final_archive = dict(filter(lambda x: all(x[1][2] <= 0), self.archive.items()))
+        final_archive = dict(filter(lambda x: self.is_feasible(x[1][2]), self.archive.items()))
         return final_archive
 
     @staticmethod
@@ -461,31 +484,33 @@ class MOSA(MOSAConfig):
                 vars_df = pd.concat([vars_df, var_df])
                 objs_df = pd.concat([objs_df, obj_df])
                 cvs_df = pd.concat([cvs_df, cv_df])
-        vars_df.to_csv(path + '\\' + args[0] + '_vars.csv')
-        objs_df.to_csv(path + '\\' + args[0] + '_objs.csv')
-        cvs_df.to_csv(path + '\\' + args[0] + '_cvs.csv')
+        vars_df.to_csv(os.path.join(path, args[0] + '_vars.csv'))
+        objs_df.to_csv(os.path.join(path, args[0] + '_objs.csv'))
+        cvs_df.to_csv(os.path.join(path, args[0] + '_cvs.csv'))
 
     def output_adl2csv(self, path):
         # Create a directory to store additional output
-        is_exist = os.path.exists(path + '\\' + 'adl_output\\')
+        adl_path = os.path.join(path, 'adl_output')
+        is_exist = os.path.exists(adl_path)
         if not is_exist:
-            os.makedirs(path + '\\' + 'adl_output\\')
+            os.makedirs(adl_path)
 
         for idx, add_v in self.problem_records.items():
             for iv, v in enumerate(add_v):
-                v.to_csv(path + '\\' + 'adl_output\\' + str(idx) + '_' + self.problem.adl_names[iv] + '.csv')
+                v.to_csv(os.path.join(adl_path, str(idx) + '_' + self.problem.adl_names[iv] + '.csv'))
 
-    # ---------- 2-D hyper-volume (minimization problem) ----------
+
+    
     @staticmethod
     def _hv_2d_min(points: np.ndarray, ref_point=(1., 1.)) -> float:
-        """Compute the hyper-volume for a 2D minimization problem."""
+        'Compute two-dimensional minimisation hypervolume for normalised points.'
         if points.size == 0:
             return 0.0
 
-        # Remove points outside the reference point.
+        
         pts = points[(points[:, 0] <= ref_point[0]) & (points[:, 1] <= ref_point[1])]
 
-        # Remove dominated points and keep the Pareto front.
+        
         keep_idx = []
         for i, p in enumerate(pts):
             dominated = np.any((pts <= p).all(axis=1) & (pts < p).any(axis=1))
@@ -493,7 +518,7 @@ class MOSA(MOSAConfig):
                 keep_idx.append(i)
         pts = pts[keep_idx]
 
-        # Sort points by the first dimension.
+        
         pts = pts[np.argsort(pts[:, 0])]
         hv, prev_y = 0.0, ref_point[1]
 
@@ -503,35 +528,36 @@ class MOSA(MOSAConfig):
                 prev_y = y
         return hv
 
-    # ---------- Plot the hyper-volume convergence curve ----------
+    
     def hyper_volume(self, points: np.ndarray, min_vals: np.ndarray, max_vals: np.ndarray) -> float:
-        """Compute hyper-volume for a set of objective vectors."""
+        'Compute hypervolume using the supplied objective normalisation bounds.'
         if points.size == 0:
             return 0.0
 
-        # Normalize using the global min-max range.
+        
         diff = max_vals - min_vals
-        diff[diff == 0] = 1.0
+        diff[diff == 0] = 1.0  
 
-        # Normalize to 0-1 where larger is better.
+        
         norm_objs = (points - min_vals) / diff
-        # Convert to a minimization formulation.
+        
         norm_objs = 1.0 - norm_objs
 
-        # Reuse the existing 2D hyper-volume routine.
+        
         ref_point = (1.0, 1.0)
         return self._hv_2d_min(norm_objs, ref_point)
 
+
     def output_fitness(self, min_vals=None,  max_vals=None):
-        """Compute and plot the hyper-volume convergence curve from archive history."""
+        'Calculate the two-objective hypervolume history.'
         if len(self.archive_history) == 0:
-            print("archive_history is empty; hyper-volume cannot be computed.")
+            print("Empty archive history; hypervolume cannot be calculated.")
             return []
 
-        # 1. Collect objective values across all stages for global normalization.
+        
         all_objs = np.vstack([objs for objs in self.archive_history if objs.size != 0])
         if all_objs.size == 0:
-            print("Objective values are empty; hyper-volume cannot be computed.")
+            print("Empty objective array; hypervolume cannot be calculated.")
             return []
 
         if min_vals is None or max_vals is None:
@@ -540,7 +566,7 @@ class MOSA(MOSAConfig):
 
         hv_values = []
 
-        # 2. Compute HV stage by stage.
+        # Update the hypervolume convergence check.
         for objs in self.archive_history:
             if objs.size == 0:
                 hv_values.append(0.0)
@@ -549,18 +575,10 @@ class MOSA(MOSAConfig):
             hv = self.hyper_volume(objs, min_vals, max_vals)
             hv_values.append(hv)
 
-        # 3. Plot the curve.
-        # plt.figure(figsize=(9, 5))
-        # plt.plot(range(1, len(hv_values) + 1), hv_values,
-        #          marker='o', linestyle='-', color='steelblue')
-        # plt.xlabel('Cooling Step')
-        # plt.ylabel('Hyper-volume (0-1)')
-        # plt.title('Hyper-volume Convergence Curve')
-        # plt.grid(alpha=0.3)
-        # plt.tight_layout()
-        # plt.show(block=True)
+        
 
         return hv_values
+
 
     def output(self, path=None, *args):
 
@@ -581,12 +599,10 @@ class MOSA(MOSAConfig):
                 inf_archive_df = pd.DataFrame.from_dict(self.archive, orient='index', columns=['Vars', 'ObjVs', 'CVs'])
                 self.out2csv(inf_archive_df, path, 'inf_archive')
                 self.output_adl2csv(path)
-                # inf_archive_df.to_csv(path + '\\' + 'inf_archive.csv')
                 if len(results) != 0:
                     archive_df = pd.DataFrame.from_dict(results, orient='index', columns=['Vars', 'ObjVs', 'CVs'])
                     self.out2csv(archive_df, path, 'archive')
                     self.output_adl2csv(path)
-                # archive_df.to_csv(path + '\\' + 'archive.csv')
                 logging.info('The result has been saved!')
             else:
                 print('Infeasible Archive:')
@@ -606,11 +622,11 @@ class MOSA(MOSAConfig):
                 archive_df = pd.DataFrame.from_dict(results, orient='index', columns=['Vars', 'ObjVs', 'CVs'])
                 self.out2csv(archive_df, path, 'archive')
                 self.output_adl2csv(path)
-                # archive_df.to_csv(path + '\\' + 'archive.csv')
                 logging.info('The result has been saved!')
             else:
                 print('Filtered Archive:')
                 print(results)
+
 
     def multi_perturb(self, p: Problem, old_var, old_obj):
         """
@@ -626,6 +642,8 @@ class MOSA(MOSAConfig):
 
         new_var = self.perturb(old_var, is_cv=True)
         new_obj, new_cv = p.eval_vars(new_var)[0:2]
+        if not self.is_feasible(new_cv):
+            return [new_var, new_obj, new_cv], ["old", False, []], p.adl_returns
         var_choice, archive_choice, del_keys = self.dominates(old_obj, new_obj)
 
         return [new_var, new_obj, new_cv], [var_choice, archive_choice, del_keys], p.adl_returns
@@ -638,9 +656,14 @@ class MOSA(MOSAConfig):
             is_cv=False, is_h_cv=False):
         # Check if there is an available archive
         assert len(self.archive) > 0, f"No existing archive can be found"
+        if self.evaluator is not None and self.multiprocess:
+            raise ValueError(
+                "Fast AMOSA evaluates each dependent step in-process; use city-level "
+                "multiprocessing instead of MOSA.multiprocess."
+            )
         # Read the conditions of early termination
         is_early_terminate = False if len(self.early_termination) == 0 else True
-        if is_early_terminate:  # Configure settings when early termination is enabled after initialization.
+        if is_early_terminate:  
             max_iters = self.early_termination.get('max_iters')
             max_duration = self.early_termination.get('max_duration') * 3600  # unit: second
             max_no_eliminated = self.early_termination.get('max_no_eliminated')
@@ -648,16 +671,16 @@ class MOSA(MOSAConfig):
             if not isinstance(max_iters, int) or not isinstance(max_duration, int):
                 raise ValueError('Max_iters or Max_duration cannot be None')
 
-        # Initialization
+        
         self.current_temperature = self.initial_temperature  # Initialize the temperature
         # Select a solution randomly from the archive as current_var
-        current_var, current_obj, current_cv = self.archive.get(np.random.randint(0, len(self.archive)))
+        current_var, current_obj, current_cv = self.archive.get(random.choice(list(self.archive.keys())))
         all_iter_counts = 0
         no_eliminated_times = 0
         archive_choice = False
         self.print_header()
 
-        # Store the HV history.
+        # Update the hypervolume convergence check.
         hv_history = []
 
         # Start the outer loop for temperature annealing
@@ -680,10 +703,6 @@ class MOSA(MOSAConfig):
                     # Filter those new_vars are selected and needed to store in the archive
                     res_best = list(filter(lambda x: x[1][1] is True and x[1][0] == 'new', res_list[0]))
                     
-                    # with open('data_res_best.pkl', 'wb') as f:
-                    #     pickle.dump(res_best, f)
-                    # with open('data_res_list.pkl', 'wb') as f:
-                    #     pickle.dump(res_list, f)
 
                     if len(res_best) == 0:  # cannot get the best new_vars with "new" and "True"
                         # Filter those new_vars are selected but not to be stored in the archive
@@ -710,16 +729,18 @@ class MOSA(MOSAConfig):
                         new_var, new_obj, new_cv = eval_list
                         var_choice, archive_choice, del_keys = dominates_list
                         del_keys = list(set(all_del_keys))
-                        # print(f"del_keys: {del_keys}")
                         no_eliminated_times = 0
 
                 else:  # Without Multiprocess setting
                     all_iter_counts += 1
                     no_eliminated_times += 1
                     new_var = self.perturb(current_var, is_h_cv=is_h_cv, is_cv=is_cv)  # Get a new vars via perturbation
-                    new_obj, new_cv = self.problem.eval_vars(new_var)[0:2]  # Get new_vars' ObjVs and CVs
-                    # Judge the status of domination between the old and new solutions
-                    var_choice, archive_choice, del_keys = self.dominates(current_obj, new_obj)
+                    new_obj, new_cv = self.evaluate(new_var)  # Get new_vars' ObjVs and CVs
+                    if self.is_feasible(new_cv):
+                        # Judge the status of domination between the old and new solutions
+                        var_choice, archive_choice, del_keys = self.dominates(current_obj, new_obj)
+                    else:
+                        var_choice, archive_choice, del_keys = "old", False, []
                     if var_choice == "new" and archive_choice:
                         no_eliminated_times = 0
 
@@ -737,27 +758,25 @@ class MOSA(MOSAConfig):
                                                      self.problem.adl_returns})
                 if len(del_keys) > 0:  # Delete dominated solutions in the archive
                     [self.archive.pop(k) for k in del_keys]
-                    try:
+                    try:  
                         [self.problem_records.pop(k) for k in del_keys]
                     except:
                         None
-                # logging.info("Eval_iter: " + str(all_iter_counts))
-                # logging.info("No eliminated times: " + str(no_eliminated_times))
 
-            # Record archive status after each temperature update.
+            
             self.archive_history.append(
                 np.array([v[1] for v in self.archive.values()], dtype=float)
             )
 
-            # Check whether the HV early-stop condition is met.
+            # Update the hypervolume convergence check.
             if is_early_terminate and len(self.archive_history) > int(max_no_eliminated / self.annealing_iters):
-                # Collect objective values for normalization.
+                
                 all_objs = np.vstack([objs for objs in self.archive_history if objs.size != 0])
                 if all_objs.size != 0:
                     min_vals = np.min(all_objs, axis=0)
                     max_vals = np.max(all_objs, axis=0)
 
-                    # Compute the current and previous HV values.
+                    # Update the hypervolume convergence check.
                     current_points = self.archive_history[-1]
                     previous_points = self.archive_history[-int(max_no_eliminated / self.annealing_iters) - 1]
 
@@ -765,7 +784,7 @@ class MOSA(MOSAConfig):
                         current_hv = self.hyper_volume(current_points, min_vals, max_vals)
                         previous_hv = self.hyper_volume(previous_points, min_vals, max_vals)
                         print(f"Delta HV: {(current_hv - previous_hv):.4f}")
-                        # Early-stop if the HV change is below min_delta_hv.
+                        # Update the hypervolume convergence check.
                         if current_hv - previous_hv < self.min_delta_hv:
                             break_outer = True
                             break
@@ -780,3 +799,4 @@ class MOSA(MOSAConfig):
 
         # Once the "current_temp < end_temp", finish the algorithm and output all results
         self.output(path, store, inf)
+

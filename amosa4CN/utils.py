@@ -1,5 +1,7 @@
+
 import numpy as np
 import pandas as pd
+
 
 def convert_str2array(str_l: str):
     s = str_l.replace('[', '')
@@ -9,6 +11,7 @@ def convert_str2array(str_l: str):
     s = np.array(s)
     return s
 
+
 def read_archive(path):
     archive = pd.read_csv(path, index_col=0)
     archive = archive.applymap(convert_str2array)
@@ -16,3 +19,4 @@ def read_archive(path):
     ObjV = np.array(archive['ObjVs'].to_list())
     CVs = np.array(archive['CVs'].to_list())
     return vars_, ObjV, CVs
+

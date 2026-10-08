@@ -1,0 +1,1570 @@
+[
+  {
+    "release_city": "Beijing_Beijing",
+    "city_en": "Beijing",
+    "province_en": "Beijing",
+    "citycode": "110000",
+    "seed_offset": 3905893190
+  },
+  {
+    "release_city": "Tianjin_Tianjin",
+    "city_en": "Tianjin",
+    "province_en": "Tianjin",
+    "citycode": "120000",
+    "seed_offset": 3052454986
+  },
+  {
+    "release_city": "Shijiazhuang_Hebei",
+    "city_en": "Shijiazhuang",
+    "province_en": "Hebei",
+    "citycode": "130100",
+    "seed_offset": 443759935
+  },
+  {
+    "release_city": "Qinhuangdao_Hebei",
+    "city_en": "Qinhuangdao",
+    "province_en": "Hebei",
+    "citycode": "130300",
+    "seed_offset": 1345456677
+  },
+  {
+    "release_city": "Handan_Hebei",
+    "city_en": "Handan",
+    "province_en": "Hebei",
+    "citycode": "130400",
+    "seed_offset": 1328099508
+  },
+  {
+    "release_city": "Xingtai_Hebei",
+    "city_en": "Xingtai",
+    "province_en": "Hebei",
+    "citycode": "130500",
+    "seed_offset": 1501058273
+  },
+  {
+    "release_city": "Baoding_Hebei",
+    "city_en": "Baoding",
+    "province_en": "Hebei",
+    "citycode": "130600",
+    "seed_offset": 3690621263
+  },
+  {
+    "release_city": "Zhangjiakou_Hebei",
+    "city_en": "Zhangjiakou",
+    "province_en": "Hebei",
+    "citycode": "130700",
+    "seed_offset": 1904988396
+  },
+  {
+    "release_city": "Chengde_Hebei",
+    "city_en": "Chengde",
+    "province_en": "Hebei",
+    "citycode": "130800",
+    "seed_offset": 3694449639
+  },
+  {
+    "release_city": "Cangzhou_Hebei",
+    "city_en": "Cangzhou",
+    "province_en": "Hebei",
+    "citycode": "130900",
+    "seed_offset": 2156448928
+  },
+  {
+    "release_city": "Langfang_Hebei",
+    "city_en": "Langfang",
+    "province_en": "Hebei",
+    "citycode": "131000",
+    "seed_offset": 1546273919
+  },
+  {
+    "release_city": "Hengshui_Hebei",
+    "city_en": "Hengshui",
+    "province_en": "Hebei",
+    "citycode": "131100",
+    "seed_offset": 580252964
+  },
+  {
+    "release_city": "Taiyuan_Shanxi",
+    "city_en": "Taiyuan",
+    "province_en": "Shanxi",
+    "citycode": "140100",
+    "seed_offset": 1988826267
+  },
+  {
+    "release_city": "Datong_Shanxi",
+    "city_en": "Datong",
+    "province_en": "Shanxi",
+    "citycode": "140200",
+    "seed_offset": 2317395145
+  },
+  {
+    "release_city": "Changzhi_Shanxi",
+    "city_en": "Changzhi",
+    "province_en": "Shanxi",
+    "citycode": "140400",
+    "seed_offset": 556472389
+  },
+  {
+    "release_city": "Jincheng_Shanxi",
+    "city_en": "Jincheng",
+    "province_en": "Shanxi",
+    "citycode": "140500",
+    "seed_offset": 2367803922
+  },
+  {
+    "release_city": "Shuozhou_Shanxi",
+    "city_en": "Shuozhou",
+    "province_en": "Shanxi",
+    "citycode": "140600",
+    "seed_offset": 4127130379
+  },
+  {
+    "release_city": "Yuncheng_Shanxi",
+    "city_en": "Yuncheng",
+    "province_en": "Shanxi",
+    "citycode": "140800",
+    "seed_offset": 522431077
+  },
+  {
+    "release_city": "Xinzhou_Shanxi",
+    "city_en": "Xinzhou",
+    "province_en": "Shanxi",
+    "citycode": "140900",
+    "seed_offset": 2189300494
+  },
+  {
+    "release_city": "Linfen_Shanxi",
+    "city_en": "Linfen",
+    "province_en": "Shanxi",
+    "citycode": "141000",
+    "seed_offset": 3228456589
+  },
+  {
+    "release_city": "Lvliang_Shanxi",
+    "city_en": "Lvliang",
+    "province_en": "Shanxi",
+    "citycode": "141100",
+    "seed_offset": 457444512
+  },
+  {
+    "release_city": "Hohhot_Inner Mongolia",
+    "city_en": "Hohhot",
+    "province_en": "Inner Mongolia",
+    "citycode": "150100",
+    "seed_offset": 1387857100
+  },
+  {
+    "release_city": "Baotou_Inner Mongolia",
+    "city_en": "Baotou",
+    "province_en": "Inner Mongolia",
+    "citycode": "150200",
+    "seed_offset": 2578398103
+  },
+  {
+    "release_city": "Chifeng_Inner Mongolia",
+    "city_en": "Chifeng",
+    "province_en": "Inner Mongolia",
+    "citycode": "150400",
+    "seed_offset": 3322575483
+  },
+  {
+    "release_city": "Ordos_Inner Mongolia",
+    "city_en": "Ordos",
+    "province_en": "Inner Mongolia",
+    "citycode": "150600",
+    "seed_offset": 2931982518
+  },
+  {
+    "release_city": "Ulanqab_Inner Mongolia",
+    "city_en": "Ulanqab",
+    "province_en": "Inner Mongolia",
+    "citycode": "150900",
+    "seed_offset": 3059633837
+  },
+  {
+    "release_city": "Shenyang_Liaoning",
+    "city_en": "Shenyang",
+    "province_en": "Liaoning",
+    "citycode": "210100",
+    "seed_offset": 3749087896
+  },
+  {
+    "release_city": "Anshan_Liaoning",
+    "city_en": "Anshan",
+    "province_en": "Liaoning",
+    "citycode": "210300",
+    "seed_offset": 3979630706
+  },
+  {
+    "release_city": "Fushun_Liaoning",
+    "city_en": "Fushun",
+    "province_en": "Liaoning",
+    "citycode": "210400",
+    "seed_offset": 2821118666
+  },
+  {
+    "release_city": "Dandong_Liaoning",
+    "city_en": "Dandong",
+    "province_en": "Liaoning",
+    "citycode": "210600",
+    "seed_offset": 3948581762
+  },
+  {
+    "release_city": "Jinzhou_Liaoning",
+    "city_en": "Jinzhou",
+    "province_en": "Liaoning",
+    "citycode": "210700",
+    "seed_offset": 3328140052
+  },
+  {
+    "release_city": "Yingkou_Liaoning",
+    "city_en": "Yingkou",
+    "province_en": "Liaoning",
+    "citycode": "210800",
+    "seed_offset": 4153847819
+  },
+  {
+    "release_city": "Liaoyang_Liaoning",
+    "city_en": "Liaoyang",
+    "province_en": "Liaoning",
+    "citycode": "211000",
+    "seed_offset": 3124809392
+  },
+  {
+    "release_city": "Panjin_Liaoning",
+    "city_en": "Panjin",
+    "province_en": "Liaoning",
+    "citycode": "211100",
+    "seed_offset": 3957141956
+  },
+  {
+    "release_city": "Tieling_Liaoning",
+    "city_en": "Tieling",
+    "province_en": "Liaoning",
+    "citycode": "211200",
+    "seed_offset": 3976115488
+  },
+  {
+    "release_city": "Chaoyang_Liaoning",
+    "city_en": "Chaoyang",
+    "province_en": "Liaoning",
+    "citycode": "211300",
+    "seed_offset": 107760021
+  },
+  {
+    "release_city": "Changchun_Jilin",
+    "city_en": "Changchun",
+    "province_en": "Jilin",
+    "citycode": "220100",
+    "seed_offset": 446435148
+  },
+  {
+    "release_city": "Jilin_Jilin",
+    "city_en": "Jilin",
+    "province_en": "Jilin",
+    "citycode": "220200",
+    "seed_offset": 2862196702
+  },
+  {
+    "release_city": "Siping_Jilin",
+    "city_en": "Siping",
+    "province_en": "Jilin",
+    "citycode": "220300",
+    "seed_offset": 3717697468
+  },
+  {
+    "release_city": "Tonghua_Jilin",
+    "city_en": "Tonghua",
+    "province_en": "Jilin",
+    "citycode": "220500",
+    "seed_offset": 1109930651
+  },
+  {
+    "release_city": "Songyuan_Jilin",
+    "city_en": "Songyuan",
+    "province_en": "Jilin",
+    "citycode": "220700",
+    "seed_offset": 1175836885
+  },
+  {
+    "release_city": "Harbin_Heilongjiang",
+    "city_en": "Harbin",
+    "province_en": "Heilongjiang",
+    "citycode": "230100",
+    "seed_offset": 205654172
+  },
+  {
+    "release_city": "Qiqihar_Heilongjiang",
+    "city_en": "Qiqihar",
+    "province_en": "Heilongjiang",
+    "citycode": "230200",
+    "seed_offset": 672827398
+  },
+  {
+    "release_city": "Shuangyashan_Heilongjiang",
+    "city_en": "Shuangyashan",
+    "province_en": "Heilongjiang",
+    "citycode": "230500",
+    "seed_offset": 1213891792
+  },
+  {
+    "release_city": "Daqing_Heilongjiang",
+    "city_en": "Daqing",
+    "province_en": "Heilongjiang",
+    "citycode": "230600",
+    "seed_offset": 1860989704
+  },
+  {
+    "release_city": "Jiamusi_Heilongjiang",
+    "city_en": "Jiamusi",
+    "province_en": "Heilongjiang",
+    "citycode": "230800",
+    "seed_offset": 2400177691
+  },
+  {
+    "release_city": "Qitaihe_Heilongjiang",
+    "city_en": "Qitaihe",
+    "province_en": "Heilongjiang",
+    "citycode": "230900",
+    "seed_offset": 665671974
+  },
+  {
+    "release_city": "Mudanjiang_Heilongjiang",
+    "city_en": "Mudanjiang",
+    "province_en": "Heilongjiang",
+    "citycode": "231000",
+    "seed_offset": 1389407557
+  },
+  {
+    "release_city": "Heihe_Heilongjiang",
+    "city_en": "Heihe",
+    "province_en": "Heilongjiang",
+    "citycode": "231100",
+    "seed_offset": 2548105743
+  },
+  {
+    "release_city": "Suihua_Heilongjiang",
+    "city_en": "Suihua",
+    "province_en": "Heilongjiang",
+    "citycode": "231200",
+    "seed_offset": 208040857
+  },
+  {
+    "release_city": "Shanghai_Shanghai",
+    "city_en": "Shanghai",
+    "province_en": "Shanghai",
+    "citycode": "310000",
+    "seed_offset": 2965004744
+  },
+  {
+    "release_city": "Nanjing_Jiangsu",
+    "city_en": "Nanjing",
+    "province_en": "Jiangsu",
+    "citycode": "320100",
+    "seed_offset": 610612184
+  },
+  {
+    "release_city": "Xuzhou_Jiangsu",
+    "city_en": "Xuzhou",
+    "province_en": "Jiangsu",
+    "citycode": "320300",
+    "seed_offset": 2205056758
+  },
+  {
+    "release_city": "Changzhou_Jiangsu",
+    "city_en": "Changzhou",
+    "province_en": "Jiangsu",
+    "citycode": "320400",
+    "seed_offset": 3109224586
+  },
+  {
+    "release_city": "Suzhou_Jiangsu",
+    "city_en": "Suzhou",
+    "province_en": "Jiangsu",
+    "citycode": "320500",
+    "seed_offset": 781854879
+  },
+  {
+    "release_city": "Nantong_Jiangsu",
+    "city_en": "Nantong",
+    "province_en": "Jiangsu",
+    "citycode": "320600",
+    "seed_offset": 2787780444
+  },
+  {
+    "release_city": "Lianyungang_Jiangsu",
+    "city_en": "Lianyungang",
+    "province_en": "Jiangsu",
+    "citycode": "320700",
+    "seed_offset": 976191624
+  },
+  {
+    "release_city": "Huai'an_Jiangsu",
+    "city_en": "Huai'an",
+    "province_en": "Jiangsu",
+    "citycode": "320800",
+    "seed_offset": 4258143682
+  },
+  {
+    "release_city": "Yancheng_Jiangsu",
+    "city_en": "Yancheng",
+    "province_en": "Jiangsu",
+    "citycode": "320900",
+    "seed_offset": 3181775128
+  },
+  {
+    "release_city": "Yangzhou_Jiangsu",
+    "city_en": "Yangzhou",
+    "province_en": "Jiangsu",
+    "citycode": "321000",
+    "seed_offset": 1512626033
+  },
+  {
+    "release_city": "Zhenjiang_Jiangsu",
+    "city_en": "Zhenjiang",
+    "province_en": "Jiangsu",
+    "citycode": "321100",
+    "seed_offset": 3528962505
+  },
+  {
+    "release_city": "Taizhou_Jiangsu",
+    "city_en": "Taizhou",
+    "province_en": "Jiangsu",
+    "citycode": "321200",
+    "seed_offset": 3998969470
+  },
+  {
+    "release_city": "Suqian_Jiangsu",
+    "city_en": "Suqian",
+    "province_en": "Jiangsu",
+    "citycode": "321300",
+    "seed_offset": 1119099262
+  },
+  {
+    "release_city": "Hangzhou_Zhejiang",
+    "city_en": "Hangzhou",
+    "province_en": "Zhejiang",
+    "citycode": "330100",
+    "seed_offset": 78570260
+  },
+  {
+    "release_city": "Ningbo_Zhejiang",
+    "city_en": "Ningbo",
+    "province_en": "Zhejiang",
+    "citycode": "330200",
+    "seed_offset": 4153756624
+  },
+  {
+    "release_city": "Wenzhou_Zhejiang",
+    "city_en": "Wenzhou",
+    "province_en": "Zhejiang",
+    "citycode": "330300",
+    "seed_offset": 1098361653
+  },
+  {
+    "release_city": "Jiaxing_Zhejiang",
+    "city_en": "Jiaxing",
+    "province_en": "Zhejiang",
+    "citycode": "330400",
+    "seed_offset": 1516202118
+  },
+  {
+    "release_city": "Huzhou_Zhejiang",
+    "city_en": "Huzhou",
+    "province_en": "Zhejiang",
+    "citycode": "330500",
+    "seed_offset": 3556146704
+  },
+  {
+    "release_city": "Shaoxing_Zhejiang",
+    "city_en": "Shaoxing",
+    "province_en": "Zhejiang",
+    "citycode": "330600",
+    "seed_offset": 4146004390
+  },
+  {
+    "release_city": "Jinhua_Zhejiang",
+    "city_en": "Jinhua",
+    "province_en": "Zhejiang",
+    "citycode": "330700",
+    "seed_offset": 3794221496
+  },
+  {
+    "release_city": "Quzhou_Zhejiang",
+    "city_en": "Quzhou",
+    "province_en": "Zhejiang",
+    "citycode": "330800",
+    "seed_offset": 3896905309
+  },
+  {
+    "release_city": "Zhoushan_Zhejiang",
+    "city_en": "Zhoushan",
+    "province_en": "Zhejiang",
+    "citycode": "330900",
+    "seed_offset": 2967140730
+  },
+  {
+    "release_city": "Taizhou_Zhejiang",
+    "city_en": "Taizhou",
+    "province_en": "Zhejiang",
+    "citycode": "331000",
+    "seed_offset": 95687817
+  },
+  {
+    "release_city": "Wuhu_Anhui",
+    "city_en": "Wuhu",
+    "province_en": "Anhui",
+    "citycode": "340200",
+    "seed_offset": 1209420402
+  },
+  {
+    "release_city": "Bengbu_Anhui",
+    "city_en": "Bengbu",
+    "province_en": "Anhui",
+    "citycode": "340300",
+    "seed_offset": 1311172832
+  },
+  {
+    "release_city": "Huainan_Anhui",
+    "city_en": "Huainan",
+    "province_en": "Anhui",
+    "citycode": "340400",
+    "seed_offset": 3412682938
+  },
+  {
+    "release_city": "Ma'anshan_Anhui",
+    "city_en": "Ma'anshan",
+    "province_en": "Anhui",
+    "citycode": "340500",
+    "seed_offset": 2625690968
+  },
+  {
+    "release_city": "Huaibei_Anhui",
+    "city_en": "Huaibei",
+    "province_en": "Anhui",
+    "citycode": "340600",
+    "seed_offset": 4127801610
+  },
+  {
+    "release_city": "Tongling_Anhui",
+    "city_en": "Tongling",
+    "province_en": "Anhui",
+    "citycode": "340700",
+    "seed_offset": 3196709168
+  },
+  {
+    "release_city": "Anqing_Anhui",
+    "city_en": "Anqing",
+    "province_en": "Anhui",
+    "citycode": "340800",
+    "seed_offset": 1622027521
+  },
+  {
+    "release_city": "Chuzhou_Anhui",
+    "city_en": "Chuzhou",
+    "province_en": "Anhui",
+    "citycode": "341100",
+    "seed_offset": 866835245
+  },
+  {
+    "release_city": "Fuyang_Anhui",
+    "city_en": "Fuyang",
+    "province_en": "Anhui",
+    "citycode": "341200",
+    "seed_offset": 4226319114
+  },
+  {
+    "release_city": "Suzhou_Anhui",
+    "city_en": "Suzhou",
+    "province_en": "Anhui",
+    "citycode": "341300",
+    "seed_offset": 3323987624
+  },
+  {
+    "release_city": "Lu'an_Anhui",
+    "city_en": "Lu'an",
+    "province_en": "Anhui",
+    "citycode": "341500",
+    "seed_offset": 843280282
+  },
+  {
+    "release_city": "Fuzhou_Fujian",
+    "city_en": "Fuzhou",
+    "province_en": "Fujian",
+    "citycode": "350100",
+    "seed_offset": 2471530697
+  },
+  {
+    "release_city": "Xiamen_Fujian",
+    "city_en": "Xiamen",
+    "province_en": "Fujian",
+    "citycode": "350200",
+    "seed_offset": 2924738017
+  },
+  {
+    "release_city": "Putian_Fujian",
+    "city_en": "Putian",
+    "province_en": "Fujian",
+    "citycode": "350300",
+    "seed_offset": 2024165370
+  },
+  {
+    "release_city": "Sanming_Fujian",
+    "city_en": "Sanming",
+    "province_en": "Fujian",
+    "citycode": "350400",
+    "seed_offset": 891299787
+  },
+  {
+    "release_city": "Quanzhou_Fujian",
+    "city_en": "Quanzhou",
+    "province_en": "Fujian",
+    "citycode": "350500",
+    "seed_offset": 3550514943
+  },
+  {
+    "release_city": "Zhangzhou_Fujian",
+    "city_en": "Zhangzhou",
+    "province_en": "Fujian",
+    "citycode": "350600",
+    "seed_offset": 110323279
+  },
+  {
+    "release_city": "Nanping_Fujian",
+    "city_en": "Nanping",
+    "province_en": "Fujian",
+    "citycode": "350700",
+    "seed_offset": 2699287908
+  },
+  {
+    "release_city": "Longyan_Fujian",
+    "city_en": "Longyan",
+    "province_en": "Fujian",
+    "citycode": "350800",
+    "seed_offset": 1440647001
+  },
+  {
+    "release_city": "Ningde_Fujian",
+    "city_en": "Ningde",
+    "province_en": "Fujian",
+    "citycode": "350900",
+    "seed_offset": 3998636642
+  },
+  {
+    "release_city": "Nanchang_Jiangxi",
+    "city_en": "Nanchang",
+    "province_en": "Jiangxi",
+    "citycode": "360100",
+    "seed_offset": 1922974089
+  },
+  {
+    "release_city": "Jingdezhen_Jiangxi",
+    "city_en": "Jingdezhen",
+    "province_en": "Jiangxi",
+    "citycode": "360200",
+    "seed_offset": 2832938922
+  },
+  {
+    "release_city": "Pingxiang_Jiangxi",
+    "city_en": "Pingxiang",
+    "province_en": "Jiangxi",
+    "citycode": "360300",
+    "seed_offset": 1156616696
+  },
+  {
+    "release_city": "Jiujiang_Jiangxi",
+    "city_en": "Jiujiang",
+    "province_en": "Jiangxi",
+    "citycode": "360400",
+    "seed_offset": 1315955207
+  },
+  {
+    "release_city": "Xinyu_Jiangxi",
+    "city_en": "Xinyu",
+    "province_en": "Jiangxi",
+    "citycode": "360500",
+    "seed_offset": 1140257265
+  },
+  {
+    "release_city": "Yingtan_Jiangxi",
+    "city_en": "Yingtan",
+    "province_en": "Jiangxi",
+    "citycode": "360600",
+    "seed_offset": 2392358951
+  },
+  {
+    "release_city": "Ganzhou_Jiangxi",
+    "city_en": "Ganzhou",
+    "province_en": "Jiangxi",
+    "citycode": "360700",
+    "seed_offset": 3066051128
+  },
+  {
+    "release_city": "Ji'an_Jiangxi",
+    "city_en": "Ji'an",
+    "province_en": "Jiangxi",
+    "citycode": "360800",
+    "seed_offset": 1038765402
+  },
+  {
+    "release_city": "Yichun_Jiangxi",
+    "city_en": "Yichun",
+    "province_en": "Jiangxi",
+    "citycode": "360900",
+    "seed_offset": 3663368306
+  },
+  {
+    "release_city": "Fuzhou_Jiangxi",
+    "city_en": "Fuzhou",
+    "province_en": "Jiangxi",
+    "citycode": "361000",
+    "seed_offset": 521421050
+  },
+  {
+    "release_city": "Shangrao_Jiangxi",
+    "city_en": "Shangrao",
+    "province_en": "Jiangxi",
+    "citycode": "361100",
+    "seed_offset": 2578457594
+  },
+  {
+    "release_city": "Jinan_Shandong",
+    "city_en": "Jinan",
+    "province_en": "Shandong",
+    "citycode": "370100",
+    "seed_offset": 1190221403
+  },
+  {
+    "release_city": "Qingdao_Shandong",
+    "city_en": "Qingdao",
+    "province_en": "Shandong",
+    "citycode": "370200",
+    "seed_offset": 2046985788
+  },
+  {
+    "release_city": "Zibo_Shandong",
+    "city_en": "Zibo",
+    "province_en": "Shandong",
+    "citycode": "370300",
+    "seed_offset": 1389287093
+  },
+  {
+    "release_city": "Zaozhuang_Shandong",
+    "city_en": "Zaozhuang",
+    "province_en": "Shandong",
+    "citycode": "370400",
+    "seed_offset": 489352416
+  },
+  {
+    "release_city": "Dongying_Shandong",
+    "city_en": "Dongying",
+    "province_en": "Shandong",
+    "citycode": "370500",
+    "seed_offset": 2106562092
+  },
+  {
+    "release_city": "Yantai_Shandong",
+    "city_en": "Yantai",
+    "province_en": "Shandong",
+    "citycode": "370600",
+    "seed_offset": 2493795199
+  },
+  {
+    "release_city": "Weifang_Shandong",
+    "city_en": "Weifang",
+    "province_en": "Shandong",
+    "citycode": "370700",
+    "seed_offset": 1718570931
+  },
+  {
+    "release_city": "Jining_Shandong",
+    "city_en": "Jining",
+    "province_en": "Shandong",
+    "citycode": "370800",
+    "seed_offset": 3051490252
+  },
+  {
+    "release_city": "Tai'an_Shandong",
+    "city_en": "Tai'an",
+    "province_en": "Shandong",
+    "citycode": "370900",
+    "seed_offset": 1315304619
+  },
+  {
+    "release_city": "Weihai_Shandong",
+    "city_en": "Weihai",
+    "province_en": "Shandong",
+    "citycode": "371000",
+    "seed_offset": 3648852058
+  },
+  {
+    "release_city": "Rizhao_Shandong",
+    "city_en": "Rizhao",
+    "province_en": "Shandong",
+    "citycode": "371100",
+    "seed_offset": 3180022909
+  },
+  {
+    "release_city": "Dezhou_Shandong",
+    "city_en": "Dezhou",
+    "province_en": "Shandong",
+    "citycode": "371400",
+    "seed_offset": 2306111972
+  },
+  {
+    "release_city": "Liaocheng_Shandong",
+    "city_en": "Liaocheng",
+    "province_en": "Shandong",
+    "citycode": "371500",
+    "seed_offset": 1288317098
+  },
+  {
+    "release_city": "Binzhou_Shandong",
+    "city_en": "Binzhou",
+    "province_en": "Shandong",
+    "citycode": "371600",
+    "seed_offset": 1771022178
+  },
+  {
+    "release_city": "Heze_Shandong",
+    "city_en": "Heze",
+    "province_en": "Shandong",
+    "citycode": "371700",
+    "seed_offset": 1799615195
+  },
+  {
+    "release_city": "Kaifeng_Henan",
+    "city_en": "Kaifeng",
+    "province_en": "Henan",
+    "citycode": "410200",
+    "seed_offset": 483360412
+  },
+  {
+    "release_city": "Luoyang_Henan",
+    "city_en": "Luoyang",
+    "province_en": "Henan",
+    "citycode": "410300",
+    "seed_offset": 1328481612
+  },
+  {
+    "release_city": "Pingdingshan_Henan",
+    "city_en": "Pingdingshan",
+    "province_en": "Henan",
+    "citycode": "410400",
+    "seed_offset": 391134734
+  },
+  {
+    "release_city": "Anyang_Henan",
+    "city_en": "Anyang",
+    "province_en": "Henan",
+    "citycode": "410500",
+    "seed_offset": 1805162893
+  },
+  {
+    "release_city": "Hebi_Henan",
+    "city_en": "Hebi",
+    "province_en": "Henan",
+    "citycode": "410600",
+    "seed_offset": 2930340657
+  },
+  {
+    "release_city": "Xinxiang_Henan",
+    "city_en": "Xinxiang",
+    "province_en": "Henan",
+    "citycode": "410700",
+    "seed_offset": 2213119871
+  },
+  {
+    "release_city": "Jiaozuo_Henan",
+    "city_en": "Jiaozuo",
+    "province_en": "Henan",
+    "citycode": "410800",
+    "seed_offset": 1505987106
+  },
+  {
+    "release_city": "Puyang_Henan",
+    "city_en": "Puyang",
+    "province_en": "Henan",
+    "citycode": "410900",
+    "seed_offset": 3894318063
+  },
+  {
+    "release_city": "Luohe_Henan",
+    "city_en": "Luohe",
+    "province_en": "Henan",
+    "citycode": "411100",
+    "seed_offset": 3133217480
+  },
+  {
+    "release_city": "Sanmenxia_Henan",
+    "city_en": "Sanmenxia",
+    "province_en": "Henan",
+    "citycode": "411200",
+    "seed_offset": 1815086790
+  },
+  {
+    "release_city": "Nanyang_Henan",
+    "city_en": "Nanyang",
+    "province_en": "Henan",
+    "citycode": "411300",
+    "seed_offset": 729815979
+  },
+  {
+    "release_city": "Shangqiu_Henan",
+    "city_en": "Shangqiu",
+    "province_en": "Henan",
+    "citycode": "411400",
+    "seed_offset": 1327215274
+  },
+  {
+    "release_city": "Xinyang_Henan",
+    "city_en": "Xinyang",
+    "province_en": "Henan",
+    "citycode": "411500",
+    "seed_offset": 815844224
+  },
+  {
+    "release_city": "Zhoukou_Henan",
+    "city_en": "Zhoukou",
+    "province_en": "Henan",
+    "citycode": "411600",
+    "seed_offset": 2879665666
+  },
+  {
+    "release_city": "Zhumadian_Henan",
+    "city_en": "Zhumadian",
+    "province_en": "Henan",
+    "citycode": "411700",
+    "seed_offset": 1304030838
+  },
+  {
+    "release_city": "Wuhan_Hubei",
+    "city_en": "Wuhan",
+    "province_en": "Hubei",
+    "citycode": "420100",
+    "seed_offset": 1199443131
+  },
+  {
+    "release_city": "Huangshi_Hubei",
+    "city_en": "Huangshi",
+    "province_en": "Hubei",
+    "citycode": "420200",
+    "seed_offset": 1342867830
+  },
+  {
+    "release_city": "Shiyan_Hubei",
+    "city_en": "Shiyan",
+    "province_en": "Hubei",
+    "citycode": "420300",
+    "seed_offset": 3685232269
+  },
+  {
+    "release_city": "Yichang_Hubei",
+    "city_en": "Yichang",
+    "province_en": "Hubei",
+    "citycode": "420500",
+    "seed_offset": 123760838
+  },
+  {
+    "release_city": "Xiangyang_Hubei",
+    "city_en": "Xiangyang",
+    "province_en": "Hubei",
+    "citycode": "420600",
+    "seed_offset": 2791965516
+  },
+  {
+    "release_city": "Jingmen_Hubei",
+    "city_en": "Jingmen",
+    "province_en": "Hubei",
+    "citycode": "420800",
+    "seed_offset": 506342601
+  },
+  {
+    "release_city": "Jingzhou_Hubei",
+    "city_en": "Jingzhou",
+    "province_en": "Hubei",
+    "citycode": "421000",
+    "seed_offset": 2104321227
+  },
+  {
+    "release_city": "Xianning_Hubei",
+    "city_en": "Xianning",
+    "province_en": "Hubei",
+    "citycode": "421200",
+    "seed_offset": 3027225646
+  },
+  {
+    "release_city": "Suizhou_Hubei",
+    "city_en": "Suizhou",
+    "province_en": "Hubei",
+    "citycode": "421300",
+    "seed_offset": 2314210665
+  },
+  {
+    "release_city": "Changsha_Hunan",
+    "city_en": "Changsha",
+    "province_en": "Hunan",
+    "citycode": "430100",
+    "seed_offset": 722501616
+  },
+  {
+    "release_city": "Xiangtan_Hunan",
+    "city_en": "Xiangtan",
+    "province_en": "Hunan",
+    "citycode": "430300",
+    "seed_offset": 2910009357
+  },
+  {
+    "release_city": "Hengyang_Hunan",
+    "city_en": "Hengyang",
+    "province_en": "Hunan",
+    "citycode": "430400",
+    "seed_offset": 3215268749
+  },
+  {
+    "release_city": "Shaoyang_Hunan",
+    "city_en": "Shaoyang",
+    "province_en": "Hunan",
+    "citycode": "430500",
+    "seed_offset": 1287049894
+  },
+  {
+    "release_city": "Yueyang_Hunan",
+    "city_en": "Yueyang",
+    "province_en": "Hunan",
+    "citycode": "430600",
+    "seed_offset": 1285507061
+  },
+  {
+    "release_city": "Changde_Hunan",
+    "city_en": "Changde",
+    "province_en": "Hunan",
+    "citycode": "430700",
+    "seed_offset": 1769570895
+  },
+  {
+    "release_city": "Yiyang_Hunan",
+    "city_en": "Yiyang",
+    "province_en": "Hunan",
+    "citycode": "430900",
+    "seed_offset": 3115054735
+  },
+  {
+    "release_city": "Chenzhou_Hunan",
+    "city_en": "Chenzhou",
+    "province_en": "Hunan",
+    "citycode": "431000",
+    "seed_offset": 1080088257
+  },
+  {
+    "release_city": "Yongzhou_Hunan",
+    "city_en": "Yongzhou",
+    "province_en": "Hunan",
+    "citycode": "431100",
+    "seed_offset": 1396385786
+  },
+  {
+    "release_city": "Huaihua_Hunan",
+    "city_en": "Huaihua",
+    "province_en": "Hunan",
+    "citycode": "431200",
+    "seed_offset": 1581203146
+  },
+  {
+    "release_city": "Loudi_Hunan",
+    "city_en": "Loudi",
+    "province_en": "Hunan",
+    "citycode": "431300",
+    "seed_offset": 2243607863
+  },
+  {
+    "release_city": "Guangzhou_Guangdong",
+    "city_en": "Guangzhou",
+    "province_en": "Guangdong",
+    "citycode": "440100",
+    "seed_offset": 2958966426
+  },
+  {
+    "release_city": "Shenzhen_Guangdong",
+    "city_en": "Shenzhen",
+    "province_en": "Guangdong",
+    "citycode": "440300",
+    "seed_offset": 674169542
+  },
+  {
+    "release_city": "Zhuhai_Guangdong",
+    "city_en": "Zhuhai",
+    "province_en": "Guangdong",
+    "citycode": "440400",
+    "seed_offset": 1844601275
+  },
+  {
+    "release_city": "Shantou_Guangdong",
+    "city_en": "Shantou",
+    "province_en": "Guangdong",
+    "citycode": "440500",
+    "seed_offset": 3644120368
+  },
+  {
+    "release_city": "Foshan_Guangdong",
+    "city_en": "Foshan",
+    "province_en": "Guangdong",
+    "citycode": "440600",
+    "seed_offset": 1871475556
+  },
+  {
+    "release_city": "Jiangmen_Guangdong",
+    "city_en": "Jiangmen",
+    "province_en": "Guangdong",
+    "citycode": "440700",
+    "seed_offset": 4140329076
+  },
+  {
+    "release_city": "Zhanjiang_Guangdong",
+    "city_en": "Zhanjiang",
+    "province_en": "Guangdong",
+    "citycode": "440800",
+    "seed_offset": 55181243
+  },
+  {
+    "release_city": "Maoming_Guangdong",
+    "city_en": "Maoming",
+    "province_en": "Guangdong",
+    "citycode": "440900",
+    "seed_offset": 1959086883
+  },
+  {
+    "release_city": "Zhaoqing_Guangdong",
+    "city_en": "Zhaoqing",
+    "province_en": "Guangdong",
+    "citycode": "441200",
+    "seed_offset": 1862780434
+  },
+  {
+    "release_city": "Huizhou_Guangdong",
+    "city_en": "Huizhou",
+    "province_en": "Guangdong",
+    "citycode": "441300",
+    "seed_offset": 206086605
+  },
+  {
+    "release_city": "Meizhou_Guangdong",
+    "city_en": "Meizhou",
+    "province_en": "Guangdong",
+    "citycode": "441400",
+    "seed_offset": 2752632126
+  },
+  {
+    "release_city": "Shanwei_Guangdong",
+    "city_en": "Shanwei",
+    "province_en": "Guangdong",
+    "citycode": "441500",
+    "seed_offset": 602475542
+  },
+  {
+    "release_city": "Heyuan_Guangdong",
+    "city_en": "Heyuan",
+    "province_en": "Guangdong",
+    "citycode": "441600",
+    "seed_offset": 2378347857
+  },
+  {
+    "release_city": "Yangjiang_Guangdong",
+    "city_en": "Yangjiang",
+    "province_en": "Guangdong",
+    "citycode": "441700",
+    "seed_offset": 360588633
+  },
+  {
+    "release_city": "Qingyuan_Guangdong",
+    "city_en": "Qingyuan",
+    "province_en": "Guangdong",
+    "citycode": "441800",
+    "seed_offset": 1871538249
+  },
+  {
+    "release_city": "Dongguan_Guangdong",
+    "city_en": "Dongguan",
+    "province_en": "Guangdong",
+    "citycode": "441900",
+    "seed_offset": 2239086703
+  },
+  {
+    "release_city": "Zhongshan_Guangdong",
+    "city_en": "Zhongshan",
+    "province_en": "Guangdong",
+    "citycode": "442000",
+    "seed_offset": 3974098280
+  },
+  {
+    "release_city": "Chaozhou_Guangdong",
+    "city_en": "Chaozhou",
+    "province_en": "Guangdong",
+    "citycode": "445100",
+    "seed_offset": 3425737695
+  },
+  {
+    "release_city": "Jieyang_Guangdong",
+    "city_en": "Jieyang",
+    "province_en": "Guangdong",
+    "citycode": "445200",
+    "seed_offset": 1547426319
+  },
+  {
+    "release_city": "Yunfu_Guangdong",
+    "city_en": "Yunfu",
+    "province_en": "Guangdong",
+    "citycode": "445300",
+    "seed_offset": 3126310548
+  },
+  {
+    "release_city": "Nanning_Guangxi",
+    "city_en": "Nanning",
+    "province_en": "Guangxi",
+    "citycode": "450100",
+    "seed_offset": 671196892
+  },
+  {
+    "release_city": "Liuzhou_Guangxi",
+    "city_en": "Liuzhou",
+    "province_en": "Guangxi",
+    "citycode": "450200",
+    "seed_offset": 1902773242
+  },
+  {
+    "release_city": "Guilin_Guangxi",
+    "city_en": "Guilin",
+    "province_en": "Guangxi",
+    "citycode": "450300",
+    "seed_offset": 3631520770
+  },
+  {
+    "release_city": "Wuzhou_Guangxi",
+    "city_en": "Wuzhou",
+    "province_en": "Guangxi",
+    "citycode": "450400",
+    "seed_offset": 4231265675
+  },
+  {
+    "release_city": "Beihai_Guangxi",
+    "city_en": "Beihai",
+    "province_en": "Guangxi",
+    "citycode": "450500",
+    "seed_offset": 2689586434
+  },
+  {
+    "release_city": "Guigang_Guangxi",
+    "city_en": "Guigang",
+    "province_en": "Guangxi",
+    "citycode": "450800",
+    "seed_offset": 842525161
+  },
+  {
+    "release_city": "Yulin_Guangxi",
+    "city_en": "Yulin",
+    "province_en": "Guangxi",
+    "citycode": "450900",
+    "seed_offset": 3982404673
+  },
+  {
+    "release_city": "Baise_Guangxi",
+    "city_en": "Baise",
+    "province_en": "Guangxi",
+    "citycode": "451000",
+    "seed_offset": 2311223873
+  },
+  {
+    "release_city": "Hechi_Guangxi",
+    "city_en": "Hechi",
+    "province_en": "Guangxi",
+    "citycode": "451200",
+    "seed_offset": 171539681
+  },
+  {
+    "release_city": "Laibin_Guangxi",
+    "city_en": "Laibin",
+    "province_en": "Guangxi",
+    "citycode": "451300",
+    "seed_offset": 4202952638
+  },
+  {
+    "release_city": "Haikou_Hainan",
+    "city_en": "Haikou",
+    "province_en": "Hainan",
+    "citycode": "460100",
+    "seed_offset": 2122549836
+  },
+  {
+    "release_city": "Sanya_Hainan",
+    "city_en": "Sanya",
+    "province_en": "Hainan",
+    "citycode": "460200",
+    "seed_offset": 479345260
+  },
+  {
+    "release_city": "Chongqing_Chongqing",
+    "city_en": "Chongqing",
+    "province_en": "Chongqing",
+    "citycode": "500000",
+    "seed_offset": 2498528123
+  },
+  {
+    "release_city": "Chengdu_Sichuan",
+    "city_en": "Chengdu",
+    "province_en": "Sichuan",
+    "citycode": "510100",
+    "seed_offset": 1755694628
+  },
+  {
+    "release_city": "Zigong_Sichuan",
+    "city_en": "Zigong",
+    "province_en": "Sichuan",
+    "citycode": "510300",
+    "seed_offset": 3083250194
+  },
+  {
+    "release_city": "Panzhihua_Sichuan",
+    "city_en": "Panzhihua",
+    "province_en": "Sichuan",
+    "citycode": "510400",
+    "seed_offset": 2323869242
+  },
+  {
+    "release_city": "Luzhou_Sichuan",
+    "city_en": "Luzhou",
+    "province_en": "Sichuan",
+    "citycode": "510500",
+    "seed_offset": 3719569433
+  },
+  {
+    "release_city": "Mianyang_Sichuan",
+    "city_en": "Mianyang",
+    "province_en": "Sichuan",
+    "citycode": "510700",
+    "seed_offset": 519455074
+  },
+  {
+    "release_city": "Neijiang_Sichuan",
+    "city_en": "Neijiang",
+    "province_en": "Sichuan",
+    "citycode": "511000",
+    "seed_offset": 1372087612
+  },
+  {
+    "release_city": "Nanchong_Sichuan",
+    "city_en": "Nanchong",
+    "province_en": "Sichuan",
+    "citycode": "511300",
+    "seed_offset": 292695966
+  },
+  {
+    "release_city": "Meishan_Sichuan",
+    "city_en": "Meishan",
+    "province_en": "Sichuan",
+    "citycode": "511400",
+    "seed_offset": 2476515470
+  },
+  {
+    "release_city": "Yibin_Sichuan",
+    "city_en": "Yibin",
+    "province_en": "Sichuan",
+    "citycode": "511500",
+    "seed_offset": 4122443620
+  },
+  {
+    "release_city": "Dazhou_Sichuan",
+    "city_en": "Dazhou",
+    "province_en": "Sichuan",
+    "citycode": "511700",
+    "seed_offset": 3986938720
+  },
+  {
+    "release_city": "Ya'an_Sichuan",
+    "city_en": "Ya'an",
+    "province_en": "Sichuan",
+    "citycode": "511800",
+    "seed_offset": 1091881068
+  },
+  {
+    "release_city": "Ziyang_Sichuan",
+    "city_en": "Ziyang",
+    "province_en": "Sichuan",
+    "citycode": "512000",
+    "seed_offset": 3671143015
+  },
+  {
+    "release_city": "Guiyang_Guizhou",
+    "city_en": "Guiyang",
+    "province_en": "Guizhou",
+    "citycode": "520100",
+    "seed_offset": 409967647
+  },
+  {
+    "release_city": "Liupanshui_Guizhou",
+    "city_en": "Liupanshui",
+    "province_en": "Guizhou",
+    "citycode": "520200",
+    "seed_offset": 3273665348
+  },
+  {
+    "release_city": "Zunyi_Guizhou",
+    "city_en": "Zunyi",
+    "province_en": "Guizhou",
+    "citycode": "520300",
+    "seed_offset": 496031978
+  },
+  {
+    "release_city": "Anshun_Guizhou",
+    "city_en": "Anshun",
+    "province_en": "Guizhou",
+    "citycode": "520400",
+    "seed_offset": 3131116784
+  },
+  {
+    "release_city": "Bijie_Guizhou",
+    "city_en": "Bijie",
+    "province_en": "Guizhou",
+    "citycode": "520500",
+    "seed_offset": 2804603887
+  },
+  {
+    "release_city": "Tongren_Guizhou",
+    "city_en": "Tongren",
+    "province_en": "Guizhou",
+    "citycode": "520600",
+    "seed_offset": 3328174460
+  },
+  {
+    "release_city": "Kunming_Yunnan",
+    "city_en": "Kunming",
+    "province_en": "Yunnan",
+    "citycode": "530100",
+    "seed_offset": 350756338
+  },
+  {
+    "release_city": "Qujing_Yunnan",
+    "city_en": "Qujing",
+    "province_en": "Yunnan",
+    "citycode": "530300",
+    "seed_offset": 1783683461
+  },
+  {
+    "release_city": "Yuxi_Yunnan",
+    "city_en": "Yuxi",
+    "province_en": "Yunnan",
+    "citycode": "530400",
+    "seed_offset": 3680372217
+  },
+  {
+    "release_city": "Zhaotong_Yunnan",
+    "city_en": "Zhaotong",
+    "province_en": "Yunnan",
+    "citycode": "530600",
+    "seed_offset": 2817515210
+  },
+  {
+    "release_city": "Lhasa_Tibet",
+    "city_en": "Lhasa",
+    "province_en": "Tibet",
+    "citycode": "540100",
+    "seed_offset": 2679603584
+  },
+  {
+    "release_city": "Xi'an_Shaanxi",
+    "city_en": "Xi'an",
+    "province_en": "Shaanxi",
+    "citycode": "610100",
+    "seed_offset": 3392890748
+  },
+  {
+    "release_city": "Tongchuan_Shaanxi",
+    "city_en": "Tongchuan",
+    "province_en": "Shaanxi",
+    "citycode": "610200",
+    "seed_offset": 3527163903
+  },
+  {
+    "release_city": "Baoji_Shaanxi",
+    "city_en": "Baoji",
+    "province_en": "Shaanxi",
+    "citycode": "610300",
+    "seed_offset": 3285750080
+  },
+  {
+    "release_city": "Xianyang_Shaanxi",
+    "city_en": "Xianyang",
+    "province_en": "Shaanxi",
+    "citycode": "610400",
+    "seed_offset": 3085857113
+  },
+  {
+    "release_city": "Lanzhou_Gansu",
+    "city_en": "Lanzhou",
+    "province_en": "Gansu",
+    "citycode": "620100",
+    "seed_offset": 2490632257
+  },
+  {
+    "release_city": "Tianshui_Gansu",
+    "city_en": "Tianshui",
+    "province_en": "Gansu",
+    "citycode": "620500",
+    "seed_offset": 2832552560
+  },
+  {
+    "release_city": "Zhangye_Gansu",
+    "city_en": "Zhangye",
+    "province_en": "Gansu",
+    "citycode": "620700",
+    "seed_offset": 2251906159
+  },
+  {
+    "release_city": "Jiuquan_Gansu",
+    "city_en": "Jiuquan",
+    "province_en": "Gansu",
+    "citycode": "620900",
+    "seed_offset": 2495113384
+  },
+  {
+    "release_city": "Qingyang_Gansu",
+    "city_en": "Qingyang",
+    "province_en": "Gansu",
+    "citycode": "621000",
+    "seed_offset": 1696716469
+  },
+  {
+    "release_city": "Xining_Qinghai",
+    "city_en": "Xining",
+    "province_en": "Qinghai",
+    "citycode": "630100",
+    "seed_offset": 261050259
+  },
+  {
+    "release_city": "Yinchuan_Ningxia",
+    "city_en": "Yinchuan",
+    "province_en": "Ningxia",
+    "citycode": "640100",
+    "seed_offset": 3119601965
+  },
+  {
+    "release_city": "Guyuan_Ningxia",
+    "city_en": "Guyuan",
+    "province_en": "Ningxia",
+    "citycode": "640400",
+    "seed_offset": 1303955844
+  },
+  {
+    "release_city": "Urumqi_Xinjiang",
+    "city_en": "Urumqi",
+    "province_en": "Xinjiang",
+    "citycode": "650100",
+    "seed_offset": 2545021000
+  },
+  {
+    "release_city": "Hami_Xinjiang",
+    "city_en": "Hami",
+    "province_en": "Xinjiang",
+    "citycode": "650500",
+    "seed_offset": 1880193259
+  }
+]

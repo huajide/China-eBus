@@ -1,3 +1,4 @@
+
 from datetime import datetime, timedelta
 import geopandas as gpd
 import networkx as nx
@@ -8,10 +9,28 @@ from treelib import Tree, Node
 from typing import List, Dict
 from vehicle_type import (VehicleTypes, baseline_mass, beta_const, beta_g, beta_SOC, beta_R_c, beta_HVAC, beta_P_l,
                           beta_D_Agg, beta_S_d, beta_V_a, beta_C_D, people_mass)
-# import random
-# import station
-# from charger import Charger, SlowCharger, FastCharger
 import sim_utils
+
+
+class InfeasibleSolutionError(RuntimeError):
+    pass
+
+
+def minutes_between(later: datetime, earlier: datetime) -> float:
+    minutes = (later - earlier).total_seconds() / 60
+    if minutes < 0:
+        raise ValueError(f"Negative trip interval: {minutes:.6f} minutes")
+    return minutes
+
+
+def needs_charging(remaining_energy: float, next_trip_energy: float,
+                   interval: float, min_interval: float,
+                   reserve_energy: float = 20) -> int:
+    return int(
+        remaining_energy <= next_trip_energy + reserve_energy
+        or interval >= min_interval
+    )
+
 
 class SimVehicle:
 
@@ -48,15 +67,15 @@ class SimVehicle:
 
         # Vehicle type attr
         self.model = vehicle_type
-        # self.driving_range = self.model.driving_range
         self.battery = self.model.battery
         self.mass = self.model.mass
-        # self.e2d_rate = self.driving_range / self.battery  # n km per kwh
 
         self.velocity_avg = speeds  # km/h
 
         self.data_tree = Tree()  # Build a data tree once instantiation
         self.data_tree.create_node(tag=self.v_name, identifier=self.v_name, data={})  # Set root
+
+
 
     @property
     def model(self):
@@ -65,9 +84,8 @@ class SimVehicle:
     @model.setter
     def model(self, new_model):
         self._model = new_model
-        # self.driving_range = new_model.driving_range
         self.battery = new_model.battery
-        # self.e2d_rate = self.driving_range / self.battery  # n km per kwh
+
 
     def get_trip_info(self, trip_idx: int, sim_instance: bool = False):
 
@@ -104,16 +122,17 @@ class SimVehicle:
         elif sim_instance:  # Return a Simulation instance
             if self.velocity_avg is not None:
                 sim = SimVehicleTrip(self.v_name, trip_idx, self.trip_s_time[idx], self.trip_e_time[idx],
-                                     self.destinations[idx], self.distances[idx], self.driving_range, self.battery,
+                                     self.destinations[idx], self.distances[idx], self.base_energy[idx],
                                      self.velocity_avg[idx])
             else:
                 sim = SimVehicleTrip(self.v_name, trip_idx, self.trip_s_time[idx], self.trip_e_time[idx],
-                                     self.destinations[idx], self.distances[idx], self.driving_range, self.battery)
+                                     self.destinations[idx], self.distances[idx], self.base_energy[idx])
 
             return sim
 
         else:  # If the @sim_instance appointed a wrong value. raise error
             raise ValueError("The param 'sim_instance' should be 'True' or 'False'!")
+
 
 class SimVehicleTrip:
 
@@ -125,10 +144,9 @@ class SimVehicleTrip:
                  parking_node: int,
                  trip_distance: float,
                  base_energy:  float,
-                 # driving_range: float,
-                 # battery: float,
                  velocity_avg=None,
-                 free_speed=30):
+                 free_speed=30,
+                 transition_distance=0.0):
 
         # Attributes
         self.v_name = v_name
@@ -155,8 +173,7 @@ class SimVehicleTrip:
         self.destination = int(float(parking_node))
         self.distance = float(trip_distance)
         self.base_energy = float(base_energy)
-        # self.driving_range = driving_range
-        # self.battery = battery
+        self.transition_distance = float(transition_distance)
         self.velocity_avg = velocity_avg
 
     def find_near_cs(self, n: int, cs_gdf: gpd.GeoDataFrame, nodes_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
@@ -212,7 +229,7 @@ class SimVehicleTrip:
             if d2s_path_length <= distance_limit:
                 d2s_dict.update({cs: d2s_path_length})
 
-        # Once there are not enough cs, bridge the gap (For Test)
+        # Fill the remaining candidates from nearby stations.
         if len(d2s_dict) < n:
             selected_cs = list(d2s_dict.keys())
             gap = n - len(d2s_dict)
@@ -229,9 +246,6 @@ class SimVehicleTrip:
         if len(d2s_df) >= n:
             sim_cs = d2s_df.nsmallest(n, 'distance')  # Filter n cs
 
-        # # the number of cs between (0, n) -> V1
-        # elif (len(d2s_df) != 0) & (len(d2s_df) < n):
-        #     sim_cs = d2s_df
 
         # the number of cs between (0,n) -> V2: Enlarge the candidate cs set and find target cs until meet 'n'
         elif (len(d2s_df) != 0) & (len(d2s_df) < n):
@@ -240,7 +254,6 @@ class SimVehicleTrip:
             sim_cs = self.find_sim_cs(near_cs_list, network, nodes_gdf, cs_gdf, distance_limit * 2, n)
 
         else:  # the number of cs == 0
-            # print(self.v_name + 'has no valid candidate sim charging station!')
             logging.log(logging.DEBUG, self.v_name + ' has no valid candidate sim charging station!' +
                         ' current near_cs_list length is: ' + str(len(near_cs)))
 
@@ -267,7 +280,8 @@ class SimVehicleTrip:
                    sim_cs_method='find',
                    all_d2s_dict=None,
                    cs_dict: dict=None,
-                   min_interval = 60
+                   min_interval=60,
+                   reserve_energy=20,
                    ):
         """
         The main entrance for simulating the behavior of operating and finding charging facility
@@ -284,7 +298,6 @@ class SimVehicleTrip:
         :param all_d2s_dict: A dict containing all destinations' corresponding stations
         :return:  [e_demand, d2s_all, timeout_all, wait_time_all]
         """
-        min_energy = 20  # kWh
         delta_mass_energy = (sim_v.mass-baseline_mass)/people_mass*beta_P_l
 
         if self.trip_idx == 1:  # For the first trip of every sim_v
@@ -294,29 +307,41 @@ class SimVehicleTrip:
 
             # the energy consumption of this trip
             e_trip = max(0, self.base_energy + (beta_SOC*100 + delta_mass_energy)*self.distance/1000)
-            # the soc at the end of trip; within [0, 1]
             soc_trip: float = 1 - e_trip / sim_v.battery
+            if soc_trip < -1e-12:
+                raise InfeasibleSolutionError('Insufficient energy for trip')
+            transition_energy = self.transition_distance / 1000 * max(
+                0, self.base_energy / self.distance * 1000
+                + beta_SOC * soc_trip * 100 + delta_mass_energy
+            )
 
-            # Cal charging demand (if remaining soc can fulfill the next trip -> 0; else 1; or interval > 60)
             try:
                 next_trip_energy: float = max(0, sim_v.base_energy[self.trip_idx] +
                                               (soc_trip*beta_SOC*100 + delta_mass_energy)*sim_v.distances[self.trip_idx]/1000)
-            except IndexError:  # Only 1 trip for this simV
+                next_trip_energy += transition_energy
+            except IndexError:
                 next_trip_energy = 99999
 
             # Get the time interval between the end of this trip and the start of next trip; unit: minutes
             try:
-                interval = (sim_v.trip_s_time[self.trip_idx] - sim_v.trip_e_time[self.trip_idx - 1]).seconds / 60
-            except IndexError:  # Only 1 trip for this simV
+                interval = minutes_between(
+                    sim_v.trip_s_time[self.trip_idx],
+                    sim_v.trip_e_time[self.trip_idx - 1],
+                )
+            except IndexError:
                 interval = 9999.9
-            # Charging demand at the current decision node.
-            cd: int or List[int] = (lambda x, y: 1 if (x <= y) | (interval >= min_interval) else 0)(soc_trip * sim_v.battery,
-                                                                                          next_trip_energy-min_energy)
-            # There will be two situations: cd == 1 or 0;
+            
+            cd = needs_charging(
+                soc_trip * sim_v.battery,
+                next_trip_energy,
+                interval,
+                min_interval,
+                reserve_energy,
+            )
             if cd == 0:  # No charging demand generated
-                # charging_distance = 0
-                # e_demand = 0  # electricity demand
-                soc_back = soc_trip
+                soc_back = soc_trip - transition_energy / sim_v.battery
+                if soc_back < -1e-12:
+                    raise InfeasibleSolutionError('Insufficient energy for next trip origin')
                 node_data = {'cd': cd,
                              'e_trip': e_trip,
                              'e_distance': 0,
@@ -330,10 +355,10 @@ class SimVehicleTrip:
                                             parent=self.v_name,
                                             data=node_data)
 
-                return [e_trip, 0, 0, 0, self.distance/1000]
+                return [e_trip, transition_energy, 0, 0,
+                        (self.distance + self.transition_distance) / 1000]
 
             else:  # cd == 1, there is charging demand
-                # e_demand = (1 - soc_trip) * sim_v.battery  # The charging demand volume; unit: Kw/h, within [0, battery]
 
                 sim_cs_nodeid, sim_cs_dist = self.choose_station(solutions, all_d2s_dict,cs_dict)
 
@@ -341,6 +366,8 @@ class SimVehicleTrip:
                 d2s = sim_cs_dist
                 delta_energy_d2s =  d2s / 1000 * max(0,self.base_energy/self.distance*1000+beta_SOC*soc_trip*100+delta_mass_energy)
                 soc_arr_s = {sim_cs_nodeid: soc_trip - delta_energy_d2s/sim_v.battery}  # Dict[int, float]
+                if soc_arr_s[sim_cs_nodeid] < -1e-12:
+                    raise InfeasibleSolutionError('Charging station is unreachable')
                 arr_time_s = {sim_cs_nodeid:
                                   self.e_time + timedelta
                                   (hours=d2s / 1000 / self.free_speed)}  # Dict[int, datetime]
@@ -359,14 +386,21 @@ class SimVehicleTrip:
                 # Get charging info; Format: [the soc after charging, charging_timeout, waiting time]
                 soc_ch, ch_timeout, wait_time, charger_used = target_station.charging_request(
                     sim_v, self, arr_time_s.get(current_cs_name),
-                    soc_arr_s.get(current_cs_name), e_trip_time)
+                    soc_arr_s.get(current_cs_name),
+                    e_trip_time + self.transition_distance / 1000 / self.free_speed,
+                    post_charge_energy=transition_energy + delta_energy_d2s)
 
                 # Sum the 3 ObjV in this scenario
-                d2s_all += d2s*2
+                d2s_all += d2s * 2 + self.transition_distance
                 timeout_all += ch_timeout
                 wait_time_all += wait_time
 
-                soc_back = soc_ch - delta_energy_d2s/sim_v.battery
+                soc_back = (
+                    soc_ch - delta_energy_d2s / sim_v.battery
+                    - transition_energy / sim_v.battery
+                )
+                if soc_back < -1e-12:
+                    raise InfeasibleSolutionError('Insufficient energy after charging')
                 node_data = {'cd': cd,
                              'e_trip': e_trip,
                              'e_distance': delta_energy_d2s,
@@ -390,7 +424,8 @@ class SimVehicleTrip:
                 Even though t1 will be represented as {(0,): [cs]} and t2 will be described as {(cs_id,): [cs]}
                 when there are cd in both t1 and t2.
                 '''
-                return [e_trip, delta_energy_d2s*2, timeout_all, wait_time_all,
+                return [e_trip, delta_energy_d2s * 2 + transition_energy,
+                        timeout_all, wait_time_all,
                         (self.distance+d2s_all)/1000]
 
         else:  # For non_first trip
@@ -398,35 +433,49 @@ class SimVehicleTrip:
             previous_nodes = sim_v.data_tree.leaves()  # Get last trip's all leaves nodes
             previous_node = previous_nodes[0]
 
-            # try:
+
             previous_soc = previous_node.data.get('soc_back') # Get the soc_back of last trip
-            # except:
-            #     print(sim_v.v_name)
-            #     print(self.trip_idx)
-            #     print(sim_v.data_tree.all_nodes())
 
             # energy consumption of this trip
             e_trip = max(0, self.base_energy + (beta_SOC*previous_soc*100 + delta_mass_energy)*self.distance/1000)
 
             # Cal the soc after this trip
             soc_trip = previous_soc - e_trip/sim_v.battery
+            if soc_trip < -1e-12:
+                raise InfeasibleSolutionError('Insufficient energy for trip')
+            transition_energy = self.transition_distance / 1000 * max(
+                0, self.base_energy / self.distance * 1000
+                + beta_SOC * soc_trip * 100 + delta_mass_energy
+            )
 
             # Cal the charging demand as well as their volume
             try:
                 next_trip_energy: float = max(0, sim_v.base_energy[self.trip_idx] +
                                               (soc_trip*beta_SOC*100 + delta_mass_energy)*sim_v.distances[self.trip_idx]/1000)
-            except IndexError:  # Only 1 trip for this simV
+                next_trip_energy += transition_energy
+            except IndexError:
                 next_trip_energy = 99999
 
             try:
-                interval = (sim_v.trip_s_time[self.trip_idx] - sim_v.trip_e_time[self.trip_idx - 1]).seconds / 60
+                interval = minutes_between(
+                    sim_v.trip_s_time[self.trip_idx],
+                    sim_v.trip_e_time[self.trip_idx - 1],
+                )
             except IndexError:  # The last trip's index will out of range
                 interval = 9999
 
-            cd = (lambda x, y: 1 if (x <= y) | (interval >= min_interval) else 0)(soc_trip * sim_v.battery,next_trip_energy-min_energy)
+            cd = needs_charging(
+                soc_trip * sim_v.battery,
+                next_trip_energy,
+                interval,
+                min_interval,
+                reserve_energy,
+            )
 
             if cd == 0:  # No charging demand
-                soc_back = soc_trip  # Zili
+                soc_back = soc_trip - transition_energy / sim_v.battery
+                if soc_back < -1e-12:
+                    raise InfeasibleSolutionError('Insufficient energy for next trip origin')
 
                 node_data = {'cd': cd,
                              'e_trip': e_trip,
@@ -440,7 +489,8 @@ class SimVehicleTrip:
                                             identifier=sim_utils.set_node(previous_node, self.trip_idx, para='id'),
                                             parent=previous_node.identifier,
                                             data=node_data)
-                return [e_trip, 0, 0, 0, self.distance / 1000]
+                return [e_trip, transition_energy, 0, 0,
+                        (self.distance + self.transition_distance) / 1000]
 
             else:  # cd = 1
                 # Find or get valid candidate charging stations
@@ -450,6 +500,8 @@ class SimVehicleTrip:
                 d2s = sim_cs_dist
                 delta_energy_d2s =  d2s / 1000 * max(0,self.base_energy/self.distance*1000+beta_SOC*soc_trip*100+delta_mass_energy)
                 soc_arr_s = {sim_cs_nodeid: soc_trip - delta_energy_d2s/sim_v.battery}  # Dict[int, float]
+                if soc_arr_s[sim_cs_nodeid] < -1e-12:
+                    raise InfeasibleSolutionError('Charging station is unreachable')
 
                 arr_time_s = {sim_cs_nodeid:
                                   self.e_time + timedelta
@@ -468,13 +520,20 @@ class SimVehicleTrip:
                 # Get charging info; Format: [the soc after charging, charging_timeout, waiting time]
                 soc_ch, ch_timeout, wait_time, charger_used = target_station.charging_request(
                     sim_v, self, arr_time_s.get(current_cs_name),
-                    soc_arr_s.get(current_cs_name), e_trip_time)
+                    soc_arr_s.get(current_cs_name),
+                    e_trip_time + self.transition_distance / 1000 / self.free_speed,
+                    post_charge_energy=transition_energy + delta_energy_d2s)
                 # Add the value of this station scenario into the 'sum_variable'
-                d2s_sum += d2s*2
+                d2s_sum += d2s * 2 + self.transition_distance
                 timeout_sum += ch_timeout
                 wait_time_sum += wait_time
 
-                soc_back = soc_ch - delta_energy_d2s / sim_v.battery
+                soc_back = (
+                    soc_ch - delta_energy_d2s / sim_v.battery
+                    - transition_energy / sim_v.battery
+                )
+                if soc_back < -1e-12:
+                    raise InfeasibleSolutionError('Insufficient energy after charging')
                 node_data = {'cd': cd,
                              'e_trip': e_trip,
                              'e_distance': delta_energy_d2s,
@@ -494,7 +553,8 @@ class SimVehicleTrip:
                        # Add visit records
                 sim_v.data_tree.get_node(sim_v.data_tree.root).data.update({previous_node.identifier: [sim_cs_nodeid]})
 
-        return [e_trip, delta_energy_d2s * 2, timeout_sum, wait_time_sum,(self.distance+d2s_sum)/1000]
+        return [e_trip, delta_energy_d2s * 2 + transition_energy,
+                timeout_sum, wait_time_sum, (self.distance + d2s_sum) / 1000]
 
     def choose_station(self, solutions, all_d2s_dict, cs_dict):
         d = self.destination
@@ -507,5 +567,7 @@ class SimVehicleTrip:
                 chosen_cs_distance = one_d2s['distance']
                 break
         if chosen_cs_nodeid < 0:
-            print('no candidate station is built')
+            raise InfeasibleSolutionError(
+                f"No built candidate station for destination {d}"
+            )
         return chosen_cs_nodeid, chosen_cs_distance  # node_id of selected charging station

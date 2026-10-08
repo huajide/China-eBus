@@ -1,23 +1,32 @@
 import numpy as np
 from treelib import Node
 import random
-from geopandas import GeoDataFrame
-from pandas import DataFrame
+import zlib
+
+
+DEFAULT_RANDOM_SEED = 42
+
+
+def derive_seed(base_seed=DEFAULT_RANDOM_SEED, key=""):
+    offset = seed_offset(str(key))
+    if offset is None:
+        offset = zlib.crc32(str(key).encode("utf-8"))
+    return (int(base_seed) + offset) % (2 ** 32)
+
+
+def set_random_seed(seed=DEFAULT_RANDOM_SEED):
+    random.seed(seed)
+    np.random.seed(seed)
+    return seed
+
 
 def find_keys(dict_input: dict, **kwargs):
-    """
-    Find the max_value or min_value items' keys in a dict
-
-    :param dict_input: the input dict
-    :param kwargs: specify max or min
-    :return: A list of keys
-    """
     keys = []
 
-    if kwargs.get('value') == 'min':
-        min_value = dict_input.get(min(dict_input))
+    if kwargs.get('value') == 'first_key':
+        reference_value = dict_input.get(min(dict_input))
         for k, v in dict_input.items():
-            if v == min_value:
+            if v == reference_value:
                 keys.append(k)
 
         return keys
@@ -32,6 +41,7 @@ def find_keys(dict_input: dict, **kwargs):
 
     else:
         raise ValueError('Plz specify value type')
+
 
 def set_node(last_node: Node, jth_trip: int, cs_id: int = 0, cd=0, **kwargs):
     if cd == 0:  # When there is no charging demand and behavior
@@ -83,55 +93,6 @@ def set_node(last_node: Node, jth_trip: int, cs_id: int = 0, cd=0, **kwargs):
     else:
         raise ValueError("Parameter 'cd' or 'trip' is incorrect or missed!")
 
-def get_var_value(v_name,  # The SimV's name
-                  trip_idx,  # start from 1
-                  sim_v_info,
-                  cs_num,  # The quantity of charging stations
-                  solutions  # Only a single individual of the population
-                  ):
-    """
-    Find the 'Z' value list of the certain simV's trip
-    :param v_name: the name of SimV
-    :param trip_idx: the index of trip
-    :param sim_v_info: a dataframe containing all sim_info grouped by simV
-    :param cs_num: the quantity of cs
-    :param solutions: Vars
-    :return: a slice of vars
-    """
-    # Get the start loc of the whole "Z" variables
-    z_loc = cs_num * 3
-    # Get the loc of this simV's trip
-    loc = sim_v_info.loc[v_name, 'var_loc'] + (trip_idx - 1) * 3 + z_loc
-    # Vars slice
-    return solutions[loc:loc+3]
-
-def set_cv1(cs_num: int, vars_):
-    """
-    Calculate and set the cv_1 that limits the amount of stations to be set
-
-    :param cs_num: Candidate charging stations amount
-    :param vars_: solution
-    :return: A numpy.array cv
-    """
-    return np.array([sum(vars_[0: cs_num]) - cs_num])
-
-def set_cv3(cs_num: int, vars_, vs_cs: DataFrame):
-    """
-    Set cv3 (For each trip, this sim_v can only get charging in an opened station) for each trip; need vs_cs;
-
-    :param cs_num:
-    :param vars_:
-    :param vs_cs:
-    """
-
-    cv3_list = []
-    for v, row in vs_cs.iterrows():
-        for outer_count, stations in enumerate(row.destination):
-            for inner_count, s in enumerate(stations):
-                cv3 = vars_[row.var_loc + outer_count * 3 + inner_count + cs_num * 3] - vars_[s]
-                cv3_list.append(cv3)
-
-    return np.array(cv3_list)
 
 def set_refer_vars(cs_num: int, refer_num: int = 1):
     """
@@ -151,11 +112,11 @@ def set_refer_vars(cs_num: int, refer_num: int = 1):
         assert refer_vars.ndim == 2, f"Invalid 'refer_vars' format'"
         return refer_vars
     else:  # When more refer_vars are needed
-        refer_vars_list = []  # Reserve the first one
-        for j in range(refer_num):
+        refer_vars_list = [np.array([1] * cs_num + [0, 0, 0])]
+        for _ in range(refer_num - 1):
             X = [random.randint(0, 1) for _ in range(cs_num)]
             if all(x == 0 for x in X):
-                # If all entries are zero, randomly activate one position.
+                
                 random_index = random.randint(0, cs_num - 1)
                 X[random_index] = 1
             VH = [0,0,0]
@@ -170,13 +131,32 @@ def set_refer_vars(cs_num: int, refer_num: int = 1):
 
         return refer_vars
 
-def choose_staion(SIM_N, is_random=False):
-    """select a station from the SIM_Nth nearest station list randomly, or select nearest one"""
-    station_list = [0] * SIM_N
-    if is_random:
-        # Randomly set one position to 1.
-        random_index = random.randint(0, SIM_N - 1)
-        station_list[random_index] = 1
-    else:
-        station_list[0] = 1
-    return station_list
+def calculate_base_energy(row):
+    distance = float(row["distance"])
+    stop_num = float(row["stop_num"])
+    avg_velocity = float(row["avg_velocity"])
+    return distance / 1000 * (
+        -0.885 + 0.260 * 2 + 0.036 * 20 + 0.005 * 10 + 0.065 * 2
+        + 0.128 * stop_num / distance * 1000
+        + 0.007 * avg_velocity + 0.173 * 0.6
+    )
+
+
+
+def canonical_city(city):
+    from paths import SHARED_DATA_ROOT
+    import json
+    records = json.loads((SHARED_DATA_ROOT / "city_registry.json").read_text(encoding="utf-8"))
+    if city not in {row["release_city"] for row in records}:
+        raise KeyError(f"Unknown city: {city}")
+    return city
+
+
+def seed_offset(city):
+    from paths import SHARED_DATA_ROOT
+    import json
+    records = json.loads((SHARED_DATA_ROOT / "city_registry.json").read_text(encoding="utf-8"))
+    for row in records:
+        if row["release_city"] == city:
+            return int(row["seed_offset"])
+    return None

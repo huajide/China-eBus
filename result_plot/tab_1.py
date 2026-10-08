@@ -1,16 +1,134 @@
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import os
-import statsmodels.api as sm
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.preprocessing import StandardScaler
-from scipy import stats
-plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans', 'SimHei']
-plt.rcParams['axes.unicode_minus'] = False
+from __future__ import annotations
 
+import argparse
+from pathlib import Path
+
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
+from sklearn.preprocessing import StandardScaler
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from fig_2 import find_knee_solution,row_by_solution
+
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "data"
+RESULTS_ROOT = DATA_DIR / "output" / "results"
+FIGURES_ROOT = DATA_DIR / "output" / "figures"
+
+ARCHIVE_ROOT = RESULTS_ROOT / "baseline"
+VS_ROOT = DATA_DIR / "input" / "vs_parking_nodeid"
+OUTPUT_DIR = FIGURES_ROOT
+X_VARS = ['route_avg_distance', 'network_length_km', 'repetition_rate', 'average_stop_spacing', 'trip_cv', 'operation_total_distance_ratio', 'avg_speed', 'route_terminal_ratio', 'e_price']
+
+Y_NAMES = ['cost_per_km', 'emission_per_km', 'cs_per_km', 'fast_chargers_per_km', 'slow_chargers_per_km', 'ev_per_km']
+
+_SUPERSCRIPT = str.maketrans('-0123456789', '⁻⁰¹²³⁴⁵⁶⁷⁸⁹')
+def significance_stars(p_value: float) -> str:
+    if p_value < 0.001:
+        return '***'
+    if p_value < 0.01:
+        return '**'
+    if p_value < 0.05:
+        return '*'
+    return ''
+
+def format_scientific(value: float, p_value: float | None=None) -> str:
+    """Format coefficients as a × 10ⁿ, with the mantissa kept to two decimals."""
+    if pd.isna(value):
+        return ''
+    if value == 0:
+        formatted = '0.00 × 10⁰'
+    else:
+        exponent = int(np.floor(np.log10(abs(value))))
+        mantissa = value / 10 ** exponent
+        if abs(round(mantissa, 2)) >= 10:
+            mantissa /= 10
+            exponent += 1
+        formatted = f'{mantissa:.2f} × 10{str(exponent).translate(_SUPERSCRIPT)}'
+    if p_value is not None:
+        formatted += significance_stars(p_value)
+    return formatted
+
+def prepare_regression_data(indicators: pd.DataFrame, outputs: pd.DataFrame):
+    merged_data = pd.merge(indicators, outputs, left_on='city', right_on='city_name')
+    merged_data['trip_cv'] = np.sqrt(merged_data['variance']) / merged_data['trip_number'] * 24
+    merged_data['route_avg_operation_distance'] = merged_data['operation_distance'] / merged_data['route_count']
+    x_data = merged_data[X_VARS]
+    y_data = pd.DataFrame({'cost_per_km': merged_data['knee_cost'] / merged_data['network_length_km'], 'emission_per_km': merged_data['knee_emission'] / merged_data['network_length_km'], 'cs_per_km': merged_data['knee_built_cs'] / merged_data['network_length_km'], 'fast_chargers_per_km': merged_data['knee_fast_per_cs'] * merged_data['knee_built_cs'] / merged_data['network_length_km'], 'slow_chargers_per_km': merged_data['knee_slow_per_cs'] * merged_data['knee_built_cs'] / merged_data['network_length_km'], 'ev_per_km': (merged_data['knee_extra_large'] + merged_data['knee_extra_medium'] + merged_data['knee_extra_small'] + merged_data['vehicle_count']) / merged_data['network_length_km']})
+    clean_data = pd.concat([x_data, y_data], axis=1).dropna()
+    return (clean_data[X_VARS], clean_data[Y_NAMES])
+
+def fit_ols_models(x_data: pd.DataFrame, y_data: pd.DataFrame, *, standardize_x: bool):
+    if standardize_x:
+        x_values = StandardScaler().fit_transform(x_data)
+    else:
+        x_values = x_data.to_numpy()
+    x_values = sm.add_constant(x_values)
+    feature_names = ['const'] + X_VARS
+    models = {}
+    for y_name in Y_NAMES:
+        model = sm.OLS(y_data[y_name].to_numpy(), x_values).fit()
+        models[y_name] = {'r2': model.rsquared, 'params': pd.Series(model.params, index=feature_names), 'pvalues': pd.Series(model.pvalues, index=feature_names)}
+    return models
+
+def build_coef_rank_table(raw_models: dict, rank_models: dict) -> pd.DataFrame:
+    table = pd.DataFrame(index=['R2', 'const'] + X_VARS)
+    for y_name in Y_NAMES:
+        coef_col = f'{y_name}_coef'
+        rank_col = f'{y_name}_rank'
+        table[coef_col] = ''
+        table[rank_col] = '-'
+        table.loc['R2', coef_col] = f'{raw_models[y_name]['r2']:.4f}'
+        raw_params = raw_models[y_name]['params']
+        raw_pvalues = raw_models[y_name]['pvalues']
+        for feature in ['const'] + X_VARS:
+            table.loc[feature, coef_col] = format_scientific(raw_params.loc[feature], raw_pvalues.loc[feature])
+        standardized_abs = rank_models[y_name]['params'].loc[X_VARS].abs()
+        ranks = standardized_abs.rank(ascending=False, method='min').astype(int)
+        for feature in X_VARS:
+            table.loc[feature, rank_col] = int(ranks.loc[feature])
+    return table
+
+def write_excel(table: pd.DataFrame, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        table.to_excel(writer, sheet_name='table_1_coef_rank')
+        worksheet = writer.sheets['table_1_coef_rank']
+        worksheet.freeze_panes = 'B2'
+        for column_cells in worksheet.columns:
+            max_len = max((len(str(cell.value)) if cell.value is not None else 0 for cell in column_cells))
+            column_letter = column_cells[0].column_letter
+            worksheet.column_dimensions[column_letter].width = min(max(max_len + 2, 10), 24)
+def read_outputs(indicators: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    updated_indicators = indicators.copy()
+    rows = []
+    for city in indicators['city']:
+        city_dir = ARCHIVE_ROOT / city
+        objectives = pd.read_csv(city_dir / 'archive_objs.csv', index_col=0)
+        variables = pd.read_csv(city_dir / 'archive_vars.csv', index_col=0)
+        diagnostics = pd.read_csv(city_dir / 'archive_cvs.csv', index_col=0)
+        solution = find_knee_solution(objectives)
+        obj = row_by_solution(objectives, solution)
+        var = row_by_solution(variables, solution)
+        cv = row_by_solution(diagnostics, solution)
+        n_stations = len(var) - 3
+        if len(cv) != 2 * n_stations + 6 or cv.iloc[0] > 0:
+            raise ValueError(f'Invalid knee diagnostics: {city}')
+        built = var.iloc[:n_stations].sum()
+        fast = -cv.iloc[1:1 + n_stations].sum()
+        slow = -cv.iloc[1 + n_stations:1 + 2 * n_stations].sum()
+        extras = -cv.iloc[-3:]
+        updated_indicators.loc[updated_indicators['city'].eq(city), 'vehicle_count'] = pd.read_csv(VS_ROOT / f'{city}.csv', usecols=['v_name'])['v_name'].nunique()
+        rows.append({'city_name': city, 'knee_cost': -obj.iloc[0], 'knee_emission': -obj.iloc[1], 'knee_built_cs': built, 'knee_fast_per_cs': fast / built if built else 0, 'knee_slow_per_cs': slow / built if built else 0, 'knee_extra_large': extras.iloc[0], 'knee_extra_medium': extras.iloc[1], 'knee_extra_small': extras.iloc[2]})
+    return (updated_indicators, pd.DataFrame(rows))
+
+def model_ranks(models: dict, outcome: str) -> pd.Series:
+    return models[outcome]['params'].loc[X_VARS].abs().rank(ascending=False, method='min').astype(int)
 def plot_correlation_matrix(indicators, outputs, output_dir='fig_1'):
+    """Plot correlation matrix."""
     indicators = indicators.copy()
     indicators['trip_cv'] = np.sqrt(indicators['variance']) / indicators['trip_number'] * 24
     indicators['route_avg_operation_distance'] = indicators['operation_distance'] / indicators['route_count']
@@ -29,6 +147,7 @@ def plot_correlation_matrix(indicators, outputs, output_dir='fig_1'):
     print(f'Correlation matrix saved to: {output_dir}/correlation_matrix.png')
 
 def calculate_vif(indicators):
+    """Calculate variance inflation factors."""
     indicators = indicators.copy()
     indicators['trip_cv'] = np.sqrt(indicators['variance']) / indicators['trip_number'] * 24
     indicators['route_avg_operation_distance'] = indicators['operation_distance'] / indicators['route_count']
@@ -41,141 +160,30 @@ def calculate_vif(indicators):
     vif_data['VIF'] = [variance_inflation_factor(X_scaled, i) for i in range(X_scaled.shape[1])]
     return vif_data
 
-def perform_ols_regression(indicators, outputs, standardize=True, format='separate'):
-    merged_data = pd.merge(indicators, outputs, left_on='city', right_on='city_name')
-    merged_data['trip_cv'] = np.sqrt(merged_data['variance']) / merged_data['trip_number'] * 24
-    merged_data['route_avg_operation_distance'] = merged_data['operation_distance'] / merged_data['route_count']
-    X = merged_data[['route_avg_distance', 'network_length_km', 'repetition_rate', 'average_stop_spacing', 'trip_cv', 'operation_total_distance_ratio', 'avg_speed', 'route_terminal_ratio', 'e_price']]
-    y_vars = {'cost_per_km': merged_data['knee_cost'] / merged_data['network_length_km'], 'emission_per_km': merged_data['knee_emission'] / merged_data['network_length_km'], 'cs_per_km': merged_data['knee_built_cs'] / merged_data['network_length_km'], 'fast_chargers_per_km': merged_data['knee_fast_per_cs'] * merged_data['knee_built_cs'] / merged_data['network_length_km'], 'slow_chargers_per_km': merged_data['knee_slow_per_cs'] * merged_data['knee_built_cs'] / merged_data['network_length_km'], 'ev_per_km': (merged_data['knee_extra_large'] + merged_data['knee_extra_medium'] + merged_data['knee_extra_small'] + merged_data['vehicle_count']) / merged_data['network_length_km']}
-    full_data = pd.concat([X, pd.DataFrame(y_vars)], axis=1)
-    clean_data = full_data.dropna()
-    X_clean = clean_data[X.columns]
-    y_clean_dict = {y_name: clean_data[y_name] for y_name in y_vars.keys()}
-    if standardize:
-        scaler = StandardScaler()
-        X_processed = scaler.fit_transform(X_clean)
-        print('Using standardized predictors for regression analysis')
-    else:
-        X_processed = X_clean.values
-        print('Using raw predictors for regression analysis')
-    X_processed = sm.add_constant(X_processed)
-    feature_names = ['const'] + list(X.columns)
-    if format == 'separate':
-        results_table = pd.DataFrame(index=feature_names)
-    else:
-        results_table = pd.DataFrame(index=['R²'] + feature_names)
-    model_stats = pd.DataFrame(index=['R²', 'Adj. R²', 'F-test p-value'])
-    r_squared_values = {}
-    for y_name, y_values in y_clean_dict.items():
-        common_index = X_clean.index.intersection(y_values.index)
-        X_reg = X_processed[X_clean.index.isin(common_index), :]
-        y_reg = y_values[common_index].values
-        model = sm.OLS(y_reg, X_reg).fit()
-        r_squared_values[y_name] = model.rsquared
-        if format == 'separate':
-            results_table[f'{y_name}_coef'] = [model.params[0]] + list(model.params[1:])
-            results_table[f'{y_name}_pval'] = [model.pvalues[0]] + list(model.pvalues[1:])
-        else:
-            combined_values = []
-            combined_values.append(f'{model.rsquared:.4f}')
-            params = [model.params[0]] + list(model.params[1:])
-            pvalues = [model.pvalues[0]] + list(model.pvalues[1:])
-            for param, pval in zip(params, pvalues):
-                if pval < 0.001:
-                    significance = '***'
-                elif pval < 0.01:
-                    significance = '**'
-                elif pval < 0.05:
-                    significance = '*'
-                else:
-                    significance = ''
-                combined_values.append(f'{param:.6f}{significance}')
-            results_table[f'{y_name}'] = combined_values
-        model_stats[y_name] = [model.rsquared, model.rsquared_adj, model.f_pvalue]
-    if format == 'separate':
-        print('\n=== Regression coefficient and P value ===')
-        print(results_table.to_string(float_format='%.6f'))
-    else:
-        print('\n=== Regression coefficient (*** p<0.001, ** p<0.01, * p<0.05) ===')
-        print(results_table.to_string(float_format='%.6f'))
-    print('\n=== Model information ===')
-    print(model_stats.to_string(float_format='%.4f'))
-    return (results_table, model_stats)
+def main():
+    global ARCHIVE_ROOT
+    parser = argparse.ArgumentParser(description="Fit the nine-predictor OLS models and report coefficient rankings")
+    parser.add_argument("--results-root",type=Path,default=RESULTS_ROOT)
+    parser.add_argument("--output",type=Path,default=OUTPUT_DIR)
+    parser.add_argument("--correlation",action="store_true")
+    parser.add_argument("--vif",action="store_true")
+    args = parser.parse_args()
+    ARCHIVE_ROOT = args.results_root / "baseline"
+    indicators,outputs = read_outputs(pd.read_csv(DATA_DIR / "224city_indicators.csv"))
+    x,y = prepare_regression_data(indicators,outputs)
+    raw = fit_ols_models(x,y,standardize_x=False)
+    scaled = fit_ols_models(x,y,standardize_x=True)
+    table = build_coef_rank_table(raw,scaled)
+    args.output.mkdir(parents=True,exist_ok=True)
+    plot_data = args.output / "plot_data"
+    plot_data.mkdir(parents=True, exist_ok=True)
+    table.to_csv(plot_data / "Table_1.csv")
+    write_excel(table,plot_data / "Table_1.xlsx")
+    outputs.to_csv(plot_data / "baseline_knee_points.csv",index=False)
+    pd.DataFrame([dict(outcome=k,predictor=f,coefficient=m["params"][f],p=m["pvalues"][f],rank=int(model_ranks(scaled,k)[f]) if f != "const" else None,R2=m["r2"])
+        for k,m in raw.items() for f in m["params"].index]).to_csv(plot_data / "OLS_numeric.csv",index=False)
+    if args.correlation: plot_correlation_matrix(indicators,outputs,output_dir=str(args.output))
+    if args.vif: calculate_vif(indicators).to_csv(plot_data / "VIF.csv",index=False)
 
-def analyze_vehicle_choice_anova(indicators, outputs):
-    merged_data = pd.merge(indicators, outputs, left_on='city', right_on='city_name')
-    merged_data['trip_cv'] = np.sqrt(merged_data['variance']) / merged_data['trip_number'] * 24
-    merged_data['route_avg_operation_distance'] = merged_data['operation_distance'] / merged_data['route_count']
-    X_vars = ['route_avg_distance', 'network_length_km', 'repetition_rate', 'average_stop_spacing', 'trip_cv', 'operation_total_distance_ratio', 'avg_speed', 'route_terminal_ratio', 'e_price']
-    X = merged_data[X_vars]
-    vehicle_types = {'large_model': merged_data['large_model'], 'medium_model': merged_data['medium_model'], 'small_model': merged_data['small_model']}
-    anova_results = {}
-    for vehicle_type, y_values in vehicle_types.items():
-        print(f'\n=== {vehicle_type} ANOVA ===')
-        analysis_data = pd.concat([X, y_values], axis=1)
-        analysis_data.columns = X_vars + [vehicle_type]
-        clean_data = analysis_data.dropna()
-        if len(clean_data) == 0:
-            print(f'Warning: {vehicle_type} has insufficient data for analysis')
-            continue
-        y_clean = clean_data[vehicle_type]
-        X_clean = clean_data[X_vars]
-        factor_results = {}
-        for factor in X_vars:
-            groups = [group[factor].values for name, group in clean_data.groupby(vehicle_type)]
-            if len(groups) > 1 and all((len(group) > 0 for group in groups)):
-                try:
-                    f_stat, p_value = stats.f_oneway(*groups)
-                    factor_results[factor] = {'f_statistic': f_stat, 'p_value': p_value, 'significant': p_value < 0.05}
-                except Exception as e:
-                    factor_results[factor] = {'f_statistic': np.nan, 'p_value': np.nan, 'significant': False}
-            else:
-                factor_results[factor] = {'f_statistic': np.nan, 'p_value': np.nan, 'significant': False}
-        results_df = pd.DataFrame(factor_results).T
-        results_df = results_df.sort_values('p_value')
-
-        def significance_mark(p_val):
-            if pd.isna(p_val):
-                return ''
-            elif p_val < 0.001:
-                return '***'
-            elif p_val < 0.01:
-                return '**'
-            elif p_val < 0.05:
-                return '*'
-            else:
-                return ''
-        results_df['significance'] = results_df['p_value'].apply(significance_mark)
-        significant_factors = results_df[results_df['significant']].copy()
-        if not significant_factors.empty:
-            print(f'\n对{vehicle_type} choice:')
-            significant_display = significant_factors[['f_statistic', 'p_value', 'significance']].copy()
-            significant_display['f_statistic'] = significant_display['f_statistic'].map('{:.4f}'.format)
-            significant_display['p_value'] = significant_display['p_value'].map('{:.6f}'.format)
-            print(significant_display.to_string())
-            print(f'\n{vehicle_type} significant factors by selection category:')
-            for factor in significant_factors.index:
-                print(f'\n{factor}:')
-                group_stats = clean_data.groupby(vehicle_type)[factor].agg(['mean', 'std', 'count'])
-                print(group_stats.round(4).to_string())
-        else:
-            print(f'\n{vehicle_type} choice is not found')
-        anova_results[vehicle_type] = results_df
-    return anova_results
-if __name__ == '__main__':
-    indicator_data = pd.read_csv('../data/224city_indicators.csv')
-    output_data = pd.read_csv('../data/224cities_output.csv')
-
-    print('\n=== correlation_matrix ===')
-    plot_correlation_matrix(indicator_data, output_data)
-
-    print("\n=== VIF ===")
-    vif_result = calculate_vif(indicator_data)
-    print(vif_result.to_string(index=False))
-
-    print('\n=== OLS ===')
-    regression_results, regression_stats = perform_ols_regression(indicator_data, output_data, standardize=False, format='combined')
-    regression_results.to_excel('fig_1/ols.xlsx')
-
-    print('\n=== ANOVA ===')
-    anova_results = analyze_vehicle_choice_anova(indicator_data, output_data)
+if __name__ == "__main__":
+    main()
