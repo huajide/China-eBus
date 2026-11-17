@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains all codes and (sample) dataset of the paper -
+This repository contains model, analysis and selected preprocessing code, together with sample data, for the paper -
 ***Network structure shapes system costs and emissions of bus electrification***.
 
 Note that the **full dataset** can be requested through our [Global EV Data Initiative](https://globalevdata.github.io/data.html).
@@ -34,7 +34,6 @@ See `requirements.txt` for the full package list. The sample workflow has been t
 
 It is highly recommended to download [AnaConda](https://www.anaconda.com) to create/manage Python environments.
 You can create a new Python environment and install the required packages via both the GUI or Command Line.
-Typically, the installation should be prompt (around _10-20 min_ from a "_clean_" machine to "_ready-to-use_" machine, but highly dependent on the Internet speed).
 
 - via **Anaconda GUI**
   1. Open the Anaconda
@@ -59,22 +58,27 @@ Typically, the installation should be prompt (around _10-20 min_ from a "_clean_
 ## Usage
 
 1. Clone or download the repository to your local machine.
-2. Prepare the required input data under `./data`. Due to the large dataset size, we only keep the data for one example city in this repository. The full datasets for the other cities are available upon request through our Global EV Data Initiative at [https://globalevdata.github.io/datasets](https://globalevdata.github.io/datasets).
+2. The repository includes prepared operational inputs and a baseline optimisation archive for **Puyang_Henan**, alongside national city indicators and plotting tables. Full operational inputs and archives for other cities are available upon request through our [Global EV Data Initiative](https://globalevdata.github.io/data.html).
 3. **Preparation**
-   1. Run the scripts in `./preparation/`, starting with `main.py`, for the main data preparation workflow, including road processing, timetable preparation, duration estimation, vehicle scheduling, and route type assignment.
-   2. This step generates the key input data required by the simulation-based optimisation program in `amosa4CN/run_amosa.py`.
+   1. The prepared Puyang inputs can be used directly; preprocessing is not required for the sample run.
+   2. `preparation/main.py` exposes road processing (`--stage roads`) and slope/base-energy preparation (`--stage energy`). It requires raw GIS data, a raw city registry and, for the energy stage, existing vehicle schedules and SRTM data. The other preparation modules provide timetable, duration, scheduling and vehicle-class routines; they are not a single end-to-end pipeline.
+   3. Raw preparation uses the original Chinese administrative names and writes Chinese-named city files under `data/raw_data/generated/`. Released inputs use names such as `Puyang_Henan` under `data/input/`. Translation and transfer between these directories are separate packaging steps, not performed by `main.py`.
 4. **Simulation-based optimisation**
-   1. Run `amosa4CN/run_amosa.py` to execute the simulation-based optimisation program for all cities.
-   2. You may adjust parameters such as the city list, number of processes, maximum iterations, and convergence settings using command-line arguments (`--help`). Run `amosa4CN/run_scenarios.py` to generate what-if or sensitivity-analysis results.
+   1. Run the bundled example from the repository root:
+      ```bash
+      python amosa4CN/run_amosa.py --cities Puyang_Henan --output-root data/output/results/sample_run
+      ```
+      Running without `--cities` selects all 224 registered cities and requires their complete operational inputs.
+   2. Command-line arguments (`--help`) control the city list, processes, iteration limit and convergence settings. Existing completed outputs are reused only when their recorded run settings match; use a separate output directory for a different configuration. `run_scenarios.py` runs what-if and sensitivity cases. Operating-time and imputed-headway cases additionally require separately prepared inputs under `data/input/SA/`; their generation pipeline is not included in this sample release.
    3. The optimisation outputs will be stored in the corresponding directory under `data/output/results/`.
 5. **Result analysis and plotting**
-   1. Use `./preparation/indicator_calculation.py` for city-level indicator calculations. The prepared indicators are stored in `data/224city_indicators.csv`.
+   1. Prepared national indicators are stored in `data/224city_indicators.csv`. `preparation/indicator_calculation.py` calculates stop counts and population coverage from raw GIS inputs; it does not regenerate every column of that table.
    2. Run the plotting scripts in `./result_plot/` to generate the three figures in the paper:
       - `fig_1.py`
       - `fig_2.py`
       - `fig_3.py`
    3. Run `./result_plot/tab_1.py` to reproduce the regression results in Table 1.
-   4. Note that `tab_1.py` requires `data/224city_indicators.csv` and the corresponding optimisation archives, which should be prepared in advance through the steps above. Full analyses require the full datasets.
+   4. `tab_1.py` requires the national indicator table, all corresponding baseline archives and operational city CSVs to recover fleet counts. Full analyses require the full datasets.
 
 ## Contact
 

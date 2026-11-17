@@ -5,10 +5,9 @@ import networkx as nx
 import pandas as pd
 from haversine import haversine
 import logging
-from treelib import Tree, Node
-from typing import List, Dict
-from vehicle_type import (VehicleTypes, baseline_mass, beta_const, beta_g, beta_SOC, beta_R_c, beta_HVAC, beta_P_l,
-                          beta_D_Agg, beta_S_d, beta_V_a, beta_C_D, people_mass)
+from treelib import Tree
+from typing import List
+from vehicle_type import VehicleTypes, baseline_mass, beta_SOC, beta_P_l, people_mass
 import sim_utils
 
 
@@ -46,7 +45,6 @@ class SimVehicle:
                  vehicle_type: VehicleTypes = VehicleTypes(0, v_type='large')
                  ):
 
-        # Static Attributes
         self.v_name = name
         self.trips = trips
 
@@ -65,7 +63,6 @@ class SimVehicle:
         self.distances = distances
         self.base_energy = base_energy
 
-        # Vehicle type attr
         self.model = vehicle_type
         self.battery = self.model.battery
         self.mass = self.model.mass
@@ -148,7 +145,6 @@ class SimVehicleTrip:
                  free_speed=30,
                  transition_distance=0.0):
 
-        # Attributes
         self.v_name = v_name
         self.trip_idx = int(trip_idx)
         self.free_speed = free_speed  # km/h, speed of no stopping
@@ -178,7 +174,7 @@ class SimVehicleTrip:
 
     def find_near_cs(self, n: int, cs_gdf: gpd.GeoDataFrame, nodes_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
         """
-        Find n near charging stations for current v's parking location based on Euclidean distance;
+        Find n nearby charging stations using great-circle distance in km.
 
         :param n: the amount of cs to be selected
         :param cs_gdf: candidate charging stations gdf
@@ -194,7 +190,7 @@ class SimVehicleTrip:
         d2s_df = pd.DataFrame(cs_gdf.apply(lambda x: haversine((x.lat, x.lon), destination_loc), axis=1),
                               columns=['d2s'])
 
-        # Filter n nearest charging stations(Euclidean distance)
+        # Filter the n nearest charging stations by great-circle distance.
         near_d2s_df: pd.DataFrame = d2s_df.nsmallest(n, 'd2s')  # Get n smallest d2s distance df
         near_cs_idx: list = near_d2s_df.index.to_list()  # Get accordance idx
         near_cs: list = cs_gdf.loc[near_cs_idx, 'node_id'].to_list()  # Get near cs osmid
@@ -247,7 +243,7 @@ class SimVehicleTrip:
             sim_cs = d2s_df.nsmallest(n, 'distance')  # Filter n cs
 
 
-        # the number of cs between (0,n) -> V2: Enlarge the candidate cs set and find target cs until meet 'n'
+        # Expand the candidate set when fewer than n stations remain.
         elif (len(d2s_df) != 0) & (len(d2s_df) < n):
             # Enlarge near cs search filed and distance_limit until find valid station
             near_cs_list = self.find_near_cs(len(near_cs) * 2, cs_gdf, nodes_gdf)
@@ -283,20 +279,11 @@ class SimVehicleTrip:
                    min_interval=60,
                    reserve_energy=20,
                    ):
-        """
-        The main entrance for simulating the behavior of operating and finding charging facility
+        """Simulate one trip and any subsequent charging for the supplied plan.
 
-        :param network: The road network
-        :param nodes_gdf: A GeoDataFrame of network nodes
-        :param edges_gdf: A GeoDataFrame of network edges
-        :param cs_gdf: A GeoDataFrame of candidate charging stations
-        :param sim_v: SimVehicle instance
-        :param station_dict: A charging station dict containing all Stations instance
-        :param sim_v_info: A DataFrame of all Vehicles' info
-        :param solutions: Vars
-        :param sim_cs_method: 'find' indicates use @find_near/sim_cs; 'get' means read sim_cs directly from @all_d2s_dict
-        :param all_d2s_dict: A dict containing all destinations' corresponding stations
-        :return:  [e_demand, d2s_all, timeout_all, wait_time_all]
+        Use station instances, destination-to-station candidates and the station
+        index mapping. Return trip energy (kWh), non-service energy (kWh),
+        delay (hours), waiting time (hours) and travelled distance (km).
         """
         delta_mass_energy = (sim_v.mass-baseline_mass)/people_mass*beta_P_l
 

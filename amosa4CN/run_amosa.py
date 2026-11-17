@@ -25,6 +25,46 @@ from vehicle_type import vehi_type_num
 DEFAULT_SEED = 42
 
 
+def validate_run_config(saved: dict, city: str, args) -> None:
+    """Require saved results to match the requested run settings."""
+    if not isinstance(saved, dict):
+        raise ValueError("Existing run configuration must be a JSON object")
+    names = (
+        "references", "annealing_iters", "annealing_strength", "cooling_alpha",
+        "vehicle_perturb_scale", "min_delta_hv", "max_iters", "max_no_eliminated",
+        "reserve_energy", "min_interval", "degradation_factor", "degradation_share",
+        "degraded_capacity_factor", "battery_purchase_factor", "vehicle_price_factor",
+        "power_factor", "slow_power_factor", "fast_charger_cost_factor", "e_price_factor",
+        "fast_chargers", "slow_chargers", "energy_factor", "hvac_power", "charging_profile",
+    )
+    expected = {name: getattr(args, name) for name in names}
+    expected.update(
+        city=city, base_seed=args.seed, city_seed=sim_utils.derive_seed(args.seed, city),
+        max_duration_hours=args.max_duration, emission_adjustment=EMISSION_METHOD,
+        grid_g_co2e_per_kwh=GRID_G_CO2E_PER_KWH,
+        charging_efficiency=CHARGING_EFFICIENCY,
+        vehicle_cycle_lifespan_years=10, battery_growth_vehicle_cycle_fixed=True,
+    )
+    different = [name for name, value in expected.items()
+                 if name not in saved or saved[name] != value]
+    for name in ("sa_parameter", "sa_value", "what_if_parameter", "what_if_value"):
+        if saved.get(name) != getattr(args, name, None):
+            different.append(name)
+    if saved.get("additional_references", 512) != args.additional_references:
+        different.append("additional_references")
+    saved_root = saved.get("vs_root")
+    requested_root = str(args.vs_root) if args.vs_root is not None else None
+    if ((saved_root is None) != (requested_root is None)
+            or (saved_root is not None
+                and Path(saved_root).resolve() != Path(requested_root).resolve())):
+        different.append("vs_root")
+    if different:
+        raise ValueError(
+            "Existing output uses different or unrecorded settings: "
+            + ", ".join(different) + "; use a new output root or --overwrite"
+        )
+
+
 def additional_references(cs_num: int, seed: int, limit: int):
     rng = np.random.default_rng(seed)
     model_counts = [vehi_type_num(kind) for kind in ("large", "medium", "small")]
@@ -73,10 +113,7 @@ def run_city(city: str, args) -> str:
                 and all((output / name).is_file() and (output / name).stat().st_size > 0
                         for name in required)):
             saved = json.loads((output / "run_config.json").read_text(encoding="utf-8"))
-            if saved.get("hvac_power") != args.hvac_power:
-                raise ValueError("Existing output uses a different HVAC power; use a new output root")
-            if saved.get("emission_adjustment") != EMISSION_METHOD:
-                raise ValueError("Existing output uses an older emission calculation; use --overwrite")
+            validate_run_config(saved, city, args)
             return f"SKIP {city}: complete output already exists at {output}"
 
         city_seed = sim_utils.derive_seed(args.seed, city)
@@ -158,6 +195,7 @@ def run_city(city: str, args) -> str:
             "what_if_parameter": getattr(args, "what_if_parameter", None),
             "what_if_value": getattr(args, "what_if_value", None),
             "references": args.references,
+            "additional_references": args.additional_references,
             "attempted_references": attempted_references,
             "initial_temperature": algorithm.initial_temperature,
             "end_temperature": algorithm.end_temperature,

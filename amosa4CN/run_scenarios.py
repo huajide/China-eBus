@@ -14,8 +14,7 @@ from contextlib import redirect_stdout, redirect_stderr
 import pandas as pd
 
 from paths import SHARED_DATA_ROOT
-from vehicle_type import EMISSION_METHOD
-from run_amosa import parse_args as parse_model_args, run_city
+from run_amosa import parse_args as parse_model_args, run_city, validate_run_config
 
 
 @dataclass(frozen=True)
@@ -70,36 +69,30 @@ def _complete(output: Path) -> bool:
 
 
 def _matching_output(output: Path, case: Case, seed: int,
-                     max_iters: int, max_duration: int) -> bool:
+                     max_iters: int, max_duration: int, input_root: Path | None = None) -> bool:
     if not _complete(output):
         return False
     try:
         config = json.loads((output / "run_config.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return False
-    prefix = "what_if" if case in WHAT_IF_CASES else "sa"
-    return (config.get(f"{prefix}_parameter") == case.parameter
-            and config.get(f"{prefix}_value") == case.value
-            and config.get("base_seed") == seed
-            and config.get("max_iters") == max_iters
-            and config.get("max_duration_hours") == max_duration
-            and config.get("hvac_power") == (case.value if case.parameter == "hvac_power" else 4.0)
-            and config.get("emission_adjustment") == EMISSION_METHOD)
+    args = _case_args(output.name, case, output.parent,
+                      input_root or SHARED_DATA_ROOT / "input" / "SA",
+                      seed, max_iters, max_duration)
+    try:
+        validate_run_config(config, output.name, args)
+    except ValueError:
+        return False
+    return True
 
 
-def _worker(city: str, province: str, case: Case, output_root: Path,
-            input_root: Path, seed: int, max_iters: int, max_duration: int) -> str:
-    output = output_root / case.group / case.name / city
-    if _matching_output(output, case, seed, max_iters, max_duration):
-        return f"SKIP {city}: complete"
-    if _complete(output):
-        return f"FAILED {city}: existing output has different settings"
-
+def _case_args(city: str, case: Case, output_root: Path, input_root: Path,
+               seed: int, max_iters: int, max_duration: int):
     args = parse_model_args([])
     args.seed = seed
     args.max_iters = max_iters
     args.max_duration = max_duration
-    args.output_root = output.parent
+    args.output_root = output_root
     if case in WHAT_IF_CASES:
         args.what_if_parameter = case.parameter
         args.what_if_value = case.value
@@ -116,10 +109,19 @@ def _worker(city: str, province: str, case: Case, output_root: Path,
     args.adjust_energy_emissions = False
     if case.group in ("operating_time", "missing_timetable"):
         args.vs_root = input_root / case.group / case.name / "vs_parking_nodeid"
-        if not (args.vs_root / f"{city}.csv").is_file():
-            return f"FAILED {city}: missing prepared SA input at {args.vs_root}"
+    return args
 
 
+def _worker(city: str, province: str, case: Case, output_root: Path,
+            input_root: Path, seed: int, max_iters: int, max_duration: int) -> str:
+    output = output_root / case.group / case.name / city
+    if _matching_output(output, case, seed, max_iters, max_duration, input_root):
+        return f"SKIP {city}: complete"
+    if _complete(output):
+        return f"FAILED {city}: existing output has different settings"
+    args = _case_args(city, case, output.parent, input_root, seed, max_iters, max_duration)
+    if args.vs_root is not None and not (args.vs_root / f"{city}.csv").is_file():
+        return f"FAILED {city}: missing prepared SA input at {args.vs_root}"
     output.mkdir(parents=True, exist_ok=True)
     with (output / "run.log").open("a", encoding="utf-8") as stream:
         with redirect_stdout(stream), redirect_stderr(stream):
@@ -176,12 +178,12 @@ def main() -> None:
 
     tasks = [(city, cities.loc[city, "province"], case) for case in cases for city in selected
              if not _matching_output(root_for(case) / case.group / case.name / city,
-                                     case, args.seed, args.max_iters, args.max_duration)]
+                                     case, args.seed, args.max_iters, args.max_duration, args.input_root)]
     print(f"{len(cases)} cases x {len(selected)} cities; at most {args.processes} processes", flush=True)
     counts = {}
     for case in cases:
         done = sum(_matching_output(root_for(case) / case.group / case.name / city,
-                                    case, args.seed, args.max_iters, args.max_duration)
+                                    case, args.seed, args.max_iters, args.max_duration, args.input_root)
                    for city in selected)
         counts[case.key] = done
         print(f"  {case.key}: {done}/{len(selected)} complete", flush=True)

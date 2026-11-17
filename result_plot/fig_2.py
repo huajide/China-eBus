@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.cbook import boxplot_stats
 from matplotlib.ticker import PercentFormatter
+from PIL import Image, ImageOps
 from sklearn.preprocessing import MinMaxScaler
 from fig_1 import _adjust_readability
 
@@ -91,10 +92,14 @@ def set_axis_style(ax: plt.Axes, title: str) -> None:
     for spine in ax.spines.values():
         spine.set_linewidth(1.5)
 
-def plot_group(ax: plt.Axes, values: list[list[float]], positions: list[int], color: str) -> None:
+def plot_group(ax: plt.Axes, values: list[list[float]], positions: list[int], color: str, show_mean: bool=False) -> None:
     if not values:
         return
-    ax.boxplot(values, positions=positions, widths=0.6, patch_artist=True, notch=False, showfliers=False, boxprops={'facecolor': color, 'edgecolor': 'black', 'alpha': 0.72, 'linewidth': 0.9}, medianprops={'color': 'black', 'linewidth': 1.7}, whiskerprops={'color': 'black', 'linewidth': 0.9}, capprops={'color': 'black', 'linewidth': 0.9})
+    boxes = ax.boxplot(values, positions=positions, widths=0.6, patch_artist=True, notch=False, showfliers=False, boxprops={'facecolor': color, 'edgecolor': 'black', 'alpha': 0.72, 'linewidth': 0.9}, medianprops={'color': 'black', 'linewidth': 1.7}, whiskerprops={'color': 'black', 'linewidth': 0.9}, capprops={'color': 'black', 'linewidth': 0.9})
+    if show_mean:
+        for sample, median in zip(values, boxes['medians']):
+            ax.plot(median.get_xdata(), [np.mean(sample)] * 2, color='gray',
+                    linestyle='--', linewidth=median.get_linewidth(), scalex=False, scaley=False)
 def _read_archives(folder: Path):
     objs = pd.read_csv(folder / 'archive_objs.csv', index_col=0)
     cvs = pd.read_csv(folder / 'archive_cvs.csv', index_col=0)
@@ -201,7 +206,7 @@ def plot_figure2(changes: pd.DataFrame, readable: bool=False, fast_only: bool=Fa
         for col_idx, (metric, title) in enumerate(METRIC_LABELS):
             ax = axes[row_idx, col_idx]
             values = [changes.loc[changes['scenario'].eq(case), metric].dropna().tolist() for case in group['scenarios']]
-            plot_group(ax, values, list(range(1, 6)), group['color'])
+            plot_group(ax, values, list(range(1, 6)), group['color'], show_mean=True)
             set_axis_style(ax, {'cost': 'System costs', 'emission': 'GHG emissions'}.get(metric, title))
             ax.title.set_fontweight('normal')
             ax.title.set_fontsize(14)
@@ -227,6 +232,10 @@ def plot_figure2(changes: pd.DataFrame, readable: bool=False, fast_only: bool=Fa
     target.mkdir(parents=True, exist_ok=True)
     path = output_path or target / 'Figure_2.png'
     fig.savefig(path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+    top_margin = round(axes[0, 0].title.get_fontsize() / 72 * 300)
+    with Image.open(path) as image:
+        padded = ImageOps.expand(image, border=(0, top_margin, 0, 0), fill='white')
+    padded.save(path, dpi=(300, 300))
     plt.close(fig)
     return path
 

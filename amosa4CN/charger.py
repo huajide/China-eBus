@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import List
 from simulation import SimVehicle
 
 
@@ -12,7 +12,7 @@ class Charger:
         self.s_index = s_idx  # The index of station in the cs_gdf
         self.s_charger_count = s_charger_count  # the amount of chargers in this station
         self.charger_idx = charger_idx  # The index of this charger in this station(charger name)
-        self.power = power  # charging power; unit: kwh
+        self.power = power  # Charging power in kW.
 
         # Dynamic attribute
         self.is_avl = True  # The status of this charger
@@ -50,7 +50,6 @@ class Charger:
         :param sim_v: The vehicle that needs charging; instance of SimVehicle
         :param arr_time: The time when this sim_v arrives at the station
         :param arr_soc: The soc of sim_v when it arrives at the station
-        :param min_e_demand: The minimum electricity demand for the sake of next trip; (n% of battery_capacity) [0 ~ 1]
         :param ch_time: The estimated charging time. unit: hours
         :param time_gap: The time gap between the next trip start time and arrival time; unit: hours
         :param max_e: The maximum electricity ratio this sim_v would charge

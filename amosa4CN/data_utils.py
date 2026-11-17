@@ -4,7 +4,6 @@ from ast import literal_eval
 
 
 def derive_simV_info(df: pd.DataFrame):
-    # Sort
     df.sort_values('e_time', inplace=True)
     max_trip = df['trip'].max()
     trips = [i + 1 for i in range(max_trip)]
@@ -77,16 +76,8 @@ def derive_transition_distances_m(vs_parking: pd.DataFrame, road_factor: float =
 
 
 def set_var_num(cs_dict: dict):
-    """
-    Get how many vars should be set; Note: This function will manipulate the "sim_v_info"
+    """Return the station-variable count plus three vehicle-model variables."""
 
-    :param sim_n:
-    :param sim_v_info:
-    :param cs_dict:
-    :return: Number of variables
-    """
-
-    # The num of charging stations
     x_num = len(cs_dict)
 
     vh_num = 3  # vehicle types

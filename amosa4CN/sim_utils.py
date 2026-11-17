@@ -95,15 +95,7 @@ def set_node(last_node: Node, jth_trip: int, cs_id: int = 0, cd=0, **kwargs):
 
 
 def set_refer_vars(cs_num: int, refer_num: int = 1):
-    """
-    Generate and set referred_vars
-
-    :param cs_num: candidate charging stations amount
-    :param num_vars: vars amount
-    :param interval: interval of the "Z" for each trip, which is corresponding to @sim_cs in the simulation
-    :param refer_num: num of referred solutions needed
-    :return: 2-dim numpy array of solution
-    """
+    """Return reference decisions with station flags and three model indices."""
 
     if refer_num == 1:
         X = [1] * cs_num  # Station
@@ -130,18 +122,6 @@ def set_refer_vars(cs_num: int, refer_num: int = 1):
         assert refer_vars.ndim == 2, f"Invalid 'refer_vars_list' format'"
 
         return refer_vars
-
-def calculate_base_energy(row):
-    distance = float(row["distance"])
-    stop_num = float(row["stop_num"])
-    avg_velocity = float(row["avg_velocity"])
-    return distance / 1000 * (
-        -0.885 + 0.260 * 2 + 0.036 * 20 + 0.005 * 10 + 0.065 * 2
-        + 0.128 * stop_num / distance * 1000
-        + 0.007 * avg_velocity + 0.173 * 0.6
-    )
-
-
 
 def canonical_city(city):
     from paths import SHARED_DATA_ROOT

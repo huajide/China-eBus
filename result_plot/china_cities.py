@@ -7,7 +7,6 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib import rcParams
-import numpy as np
 import warnings
 
 

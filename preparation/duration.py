@@ -52,16 +52,6 @@ def remove_comma_before_parenthesis(s):
     return s
 
 
-def start_end_point(multilinestring):
-    first_line = multilinestring.geoms[0]
-    first_point = first_line.coords[0]  
-
-    last_line = multilinestring.geoms[-1]
-    last_point = last_line.coords[-1]
-
-    return first_point, last_point
-
-
 def get_pt_duration(start_point, end_point, city, date: str, clock: str, key=None):
     """
     :param start_point: WGS84 coordinates tuple or Point

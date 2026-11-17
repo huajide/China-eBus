@@ -80,7 +80,7 @@ class MOSA(MOSAConfig):
         self.vehicle_perturb_scale = vehicle_perturb_scale
 
     def evaluate(self, vars_):
-        """Evaluate one solution without changing the AMOSA search logic."""
+        """Evaluate one solution using the configured evaluator."""
         if self.evaluator is not None:
             return self.evaluator.evaluate(vars_)
         return self.problem.eval_vars(vars_)[0:2]
@@ -676,12 +676,8 @@ class MOSA(MOSAConfig):
         # Select a solution randomly from the archive as current_var
         current_var, current_obj, current_cv = self.archive.get(random.choice(list(self.archive.keys())))
         all_iter_counts = 0
-        no_eliminated_times = 0
         archive_choice = False
         self.print_header()
-
-        # Update the hypervolume convergence check.
-        hv_history = []
 
         # Start the outer loop for temperature annealing
         break_outer = False
@@ -694,7 +690,6 @@ class MOSA(MOSAConfig):
                 # enable multiprocessing
                 if self.multiprocess:
                     all_iter_counts += multi_tasks
-                    no_eliminated_times += multi_tasks
                     multi_args = [[self.problem, current_var, current_obj] for _ in range(multi_tasks)]
                     res_list = []
                     with Pool(multi_tasks) as pool:
@@ -729,11 +724,9 @@ class MOSA(MOSAConfig):
                         new_var, new_obj, new_cv = eval_list
                         var_choice, archive_choice, del_keys = dominates_list
                         del_keys = list(set(all_del_keys))
-                        no_eliminated_times = 0
 
                 else:  # Without Multiprocess setting
                     all_iter_counts += 1
-                    no_eliminated_times += 1
                     new_var = self.perturb(current_var, is_h_cv=is_h_cv, is_cv=is_cv)  # Get a new vars via perturbation
                     new_obj, new_cv = self.evaluate(new_var)  # Get new_vars' ObjVs and CVs
                     if self.is_feasible(new_cv):
@@ -741,8 +734,6 @@ class MOSA(MOSAConfig):
                         var_choice, archive_choice, del_keys = self.dominates(current_obj, new_obj)
                     else:
                         var_choice, archive_choice, del_keys = "old", False, []
-                    if var_choice == "new" and archive_choice:
-                        no_eliminated_times = 0
 
                 # Update the current solution info
                 if var_choice == "new":  # When the new_vars is selected

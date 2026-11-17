@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import random
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -107,7 +108,7 @@ METRIC_COLUMNS = (
 
 
 def build_fast_data(problem) -> CNFastData:
-    """Encode a scalar ``Location`` once; no model assumptions are changed."""
+    """Encode a city's trip, vehicle and station inputs as arrays."""
     vehicle_names = list(problem.simv_v_name)
     vehicle_to_idx = {name: i for i, name in enumerate(vehicle_names)}
     vehicle_idx = np.asarray([vehicle_to_idx[name] for name in problem.v_name], dtype=np.int32)
@@ -1185,7 +1186,7 @@ def evaluate_population_fast(
     charging_profile: str = "linear",
     return_timeouts: bool = False,
 ) -> CNFastResult:
-    """Evaluate an integer population with scalar-equivalent model semantics."""
+    """Evaluate an integer population with the array-based simulator."""
     if data is None:
         data = build_fast_data(problem)
     population = _normalise_population(population, data)
@@ -1266,34 +1267,7 @@ def evaluate_population_fast(
         int(return_timeouts),
         timeout_matrix,
     )
-    adjust_energy_emissions = False
-    if not adjust_energy_emissions:
-        baseline_energy_kwh = core[:, 0] + core[:, 1]
-    elif hvac_power >= 0.0:
-        baseline_energy_kwh = core[:, 0] + core[:, 1] - core[:, 4]
-    elif energy_factor == 1.0:
-        baseline_energy_kwh = core[:, 0] + core[:, 1]
-    else:
-        baseline_core = _evaluate_core(
-            population, chosen_idx, chosen_distance, data.num_stations,
-            data.num_vehicles, data.vehicle_idx, data.vehicle_type_idx,
-            data.vehicle_type_by_vehicle,
-            data.trip_idx, data.s_us, data.e_us, data.first_s_us, data.next_pos,
-            data.interval_min, data.distance_m, data.distance_km,
-            data.transition_distance_m, data.transition_distance_km,
-            data.base_energy_rate_kwh_km, data.base_energy_kwh,
-            data.destination_idx, data.battery_kwh, data.mass_kg,
-            data.mass_energy_kwh_km, data.per_emission_g_km,
-            float(problem.reserve_energy if reserve_energy is None else reserve_energy),
-            float(min_interval), float(degradation_factor),
-            degradation_masks, degradation_feasible, float(degraded_capacity_factor),
-            float(power_factor),
-            float(slow_power_factor),
-            int(fast_chargers), int(slow_chargers), 1.0, -1.0,
-            int(charging_profile == "part_e_both"), 0,
-            np.empty((1, 1), dtype=np.float64),
-        )[0]
-        baseline_energy_kwh = baseline_core[:, 0] + baseline_core[:, 1]
+    baseline_energy_kwh = core[:, 0] + core[:, 1]
     objectives, diagnostics, metrics = _assemble_results(
         population,
         data.num_stations,
@@ -1368,13 +1342,6 @@ def reschedule_one_with_substitutions(
         int(extras[1]),
         int(extras[2]),
     )
-
-
-
-from dataclasses import dataclass
-import random
-
-import numpy as np
 
 
 

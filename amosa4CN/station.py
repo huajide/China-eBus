@@ -1,13 +1,11 @@
 from datetime import datetime
 
-import pandas as pd
 import sim_utils
 from simulation import InfeasibleSolutionError, SimVehicle, SimVehicleTrip
-from charger import Charger, FastCharger, SlowCharger
+from charger import FastCharger, SlowCharger
 from typing import List, Dict
 from datetime import timedelta
-from vehicle_type import (VehicleTypes, baseline_mass, beta_const, beta_g, beta_SOC, beta_R_c, beta_HVAC, beta_P_l,
-                          beta_D_Agg, beta_S_d, beta_V_a, beta_C_D, people_mass)
+from vehicle_type import baseline_mass, beta_SOC, beta_P_l, people_mass
 
 
 class Station:
@@ -153,8 +151,6 @@ class Station:
                     sel_charger_name = candidate_chargers[0]
 
             is_waiting = True
-
-        # After choosing suitable charger, execute the charging behavior
 
         sel_charger = self.chargers.get(sel_charger_name)
         ch_time = f_time if 'f' in sel_charger.charger_idx else s_time

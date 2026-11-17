@@ -1,6 +1,10 @@
 numpy
 pandas
 geopandas
+requests
+rasterio
+osmnx
+Pillow
 pyogrio
 pyproj
 python-dateutil

@@ -2,28 +2,18 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from preparation.duration import circuity_calculation, find_farthest_point, start_end_point
-
-import json
-import time
-import requests
-from requests import RequestException
 import pandas as pd
-import re
 from pyproj import CRS
 import ast
 import math
 from dateutil import parser
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from pathlib import Path
 
 GIS_ROOT = Path(os.environ.get("CNBUS_GIS_ROOT", str(Path(__file__).resolve().parents[1] / "data" / "gis")))
 
 import geopandas as gpd
-from shapely.ops import unary_union
-from datetime import datetime, timedelta
-from centerline.geometry import Centerline
+from datetime import datetime
 
 import rasterio
 from rasterio.mask import mask
@@ -61,9 +51,9 @@ def calculate_population_coverage(city_name, province_name, STOP_GDF):
     zone_gdf = ZONE_GDF
 
     
-    city_level = ['Shanghai_Shanghai', 'Beijing_Beijing', 'Chongqing_Chongqing', 'Tianjin_Tianjin']
+    city_level = ['上海市', '北京市', '重庆市', '天津市']
     special = ['香港特别行政区', '澳门特别行政区']
-    entity_city = ['Zhongshan_Guangdong', 'Dongguan_Guangdong', '嘉峪关市', '儋州市']
+    entity_city = ['中山市', '东莞市', '嘉峪关市', '儋州市']
 
     if city_name in special:
         sub_zone = zone_gdf[zone_gdf['省级'] == city_name].reset_index(drop=True)
@@ -240,7 +230,6 @@ def network_independents(args):
     i, province_list, city_list = args
     province_name, city_name = province_list[i], city_list[i]
 
-    """0. Loading files"""
     route_shp = gpd.read_file(rf'{Path(__file__).resolve().parents[1]}/data/raw_data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_route5.shp',
                               crs=CRS.from_epsg(4326))
     stop_shp = gpd.read_file(rf'{Path(__file__).resolve().parents[1]}/data/raw_data/cnbusdata2024-2/{province_name}/{city_name}/{city_name}_stop5.shp',
@@ -258,12 +247,10 @@ def network_independents(args):
 
     print(f'Processing {city_name}...')
 
-    """9. stop num and pop coverage"""
     stop_count = stop_shp['stop_id'].nunique()
     pop_coverage, total_population = calculate_population_coverage(city_name, province_name, stop_shp)
     info_slice_stop = [stop_count, pop_coverage, total_population]
 
-    """Return all slices as a dictionary"""
     return {
         'city': city_name,
         'province': province_name,
@@ -274,4 +261,3 @@ def network_independents(args):
 
 
 
-from shapely.geometry import box

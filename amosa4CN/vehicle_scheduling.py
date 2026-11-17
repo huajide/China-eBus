@@ -1,22 +1,14 @@
-import pandas as pd
-from vehicle_type import (VehicleTypes, baseline_mass, beta_const, beta_g, beta_SOC, beta_R_c, beta_HVAC, beta_P_l,
-                          beta_D_Agg, beta_S_d, beta_V_a, beta_C_D, people_mass)
+from vehicle_type import VehicleTypes, baseline_mass, beta_SOC, beta_P_l, people_mass
 
 
 def extra_timesave(v_name_list, dist_list, base_energy_list, timeout_list, v_type_list,
                    vehicle_large: VehicleTypes, vehicle_medium: VehicleTypes, vehicle_small: VehicleTypes,
                    max_extra_large=99999, max_extra_medium=99999, max_extra_small=99999, degradation=1.0):
-    """
-    Vehicle scheduling based on parking duration and timeout conditions
+    """Assign replacement buses to delayed trips within the supplied class limits.
 
-    Args:
-    vs_parking_df (pd.DataFrame): DataFrame containing vehicle parking information
-    timeout_list (List[datetime]): List of datetime objects representing timeout conditions
-    extra_bus (int): Number of extra buses to be scheduled
-    extra_minibus (int): Number of extra minibuses to be scheduled
-    distance:m ; range: km
-    Returns:
-    saved_time
+    Trip-aligned inputs contain vehicle IDs, distances (m), base energy (kWh),
+    delays (hours) and size classes. Return saved delay (hours), substituted
+    trip indices, and additional large, medium and small bus counts.
     """
     all_not_none = (max_extra_large is not None) and (max_extra_medium is not None) and (max_extra_small is not None)
 
@@ -71,7 +63,7 @@ def extra_timesave(v_name_list, dist_list, base_energy_list, timeout_list, v_typ
 
             for idx2 in samevehi_indices:
                 energy_consumed = max(0, base_energy_list[idx2] + (beta_SOC*100 + delta_mass_energy)*dist_list[idx2]/1000)
-                if energy_consumed<=battery_state:  # unit: m
+                if energy_consumed<=battery_state:
                     battery_state-=energy_consumed
                     v_name_list[idx2] = -1
                     saved_time_all += timeout_list[idx2]

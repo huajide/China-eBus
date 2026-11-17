@@ -81,7 +81,7 @@ def build_coef_rank_table(raw_models: dict, rank_models: dict) -> pd.DataFrame:
         rank_col = f'{y_name}_rank'
         table[coef_col] = ''
         table[rank_col] = '-'
-        table.loc['R2', coef_col] = f'{raw_models[y_name]['r2']:.4f}'
+        table.loc['R2', coef_col] = f"{raw_models[y_name]['r2']:.4f}"
         raw_params = raw_models[y_name]['params']
         raw_pvalues = raw_models[y_name]['pvalues']
         for feature in ['const'] + X_VARS:

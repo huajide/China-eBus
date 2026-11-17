@@ -39,9 +39,7 @@ type_map = {'large': 0, 'medium': 1, 'small': 2}
 
 
 def vehi_type_num(v_type: str):
-    """
-    vt: 0-large; 1-medium; 2-small
-    """
+    """Return the number of candidate models for the requested size class."""
     return len(models[type_map[v_type]])
 
 
